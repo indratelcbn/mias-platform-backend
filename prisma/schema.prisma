@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── User (Admin) ─────────────────────────────────────────────────────────────
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  nama      String
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  artikel  Artikel[]
+  kajian   Kajian[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  SUPERADMIN
+}
+
+// ─── Kajian ───────────────────────────────────────────────────────────────────
+model Kajian {
+  id          String   @id @default(uuid())
+  judul       String
+  ustadz      String
+  tanggal     DateTime
+  waktu       String
+  lokasi      String?
+  deskripsi   String?
+  thumbnail   String?
+  isPublished Boolean  @default(true) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  createdBy   String?  @map("created_by")
+  creator     User?    @relation(fields: [createdBy], references: [id])
+
+  @@map("kajian")
+}
+
+// ─── Artikel ──────────────────────────────────────────────────────────────────
+model Artikel {
+  id          String   @id @default(uuid())
+  judul       String
+  slug        String   @unique
+  konten      String
+  ringkasan   String?
+  thumbnail   String?
+  isPublished Boolean  @default(true) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  createdBy   String?  @map("created_by")
+  creator     User?    @relation(fields: [createdBy], references: [id])
+
+  @@map("artikel")
+}
+
+// ─── Donasi ───────────────────────────────────────────────────────────────────
+model Donasi {
+  id            String       @id @default(uuid())
+  nama          String
+  email         String?
+  telepon       String?
+  jumlah        Decimal      @db.Decimal(15, 2)
+  pesan         String?
+  buktiTransfer String?      @map("bukti_transfer")
+  status        StatusDonasi @default(PENDING)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  @@map("donasi")
+}
+
+enum StatusDonasi {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+// ─── Rekening ─────────────────────────────────────────────────────────────────
+model Rekening {
+  id          String   @id @default(uuid())
+  namaBank    String   @map("nama_bank")
+  noRekening  String   @map("no_rekening")
+  atasNama    String   @map("atas_nama")
+  keterangan  String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("rekening")
+}
+
+// ─── Kontak / Pesan ───────────────────────────────────────────────────────────
+model Pesan {
+  id        String   @id @default(uuid())
+  nama      String
+  email     String
+  subjek    String?
+  pesan     String
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("pesan")
+}
