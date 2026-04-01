@@ -42,4 +42,10 @@ const uploadBuktiTransfer = multer({
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
 });
 
-module.exports = { uploadThumbnail, uploadBuktiTransfer };
+const uploadQris = multer({
+  storage: createStorage('qris'),
+  fileFilter: imageFilter,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+});
+
+module.exports = { uploadThumbnail, uploadBuktiTransfer, uploadQris };

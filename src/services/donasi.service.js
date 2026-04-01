@@ -50,7 +50,89 @@ const getSummary = async () => {
 };
 
 const getRekening = async () => {
-  return prisma.rekening.findMany({ where: { isActive: true } });
+  return prisma.rekening.findMany({ orderBy: { createdAt: 'asc' } });
 };
 
-module.exports = { getAll, create, updateStatus, getSummary, getRekening };
+const createRekening = async (data) => {
+  return prisma.rekening.create({
+    data: {
+      namaBank: data.namaBank,
+      noRekening: data.noRekening,
+      atasNama: data.atasNama,
+      keterangan: data.keterangan || null,
+      qrisImage: data.qrisImage || null,
+      isActive: data.isActive !== undefined ? (data.isActive === 'true' || data.isActive === true) : true,
+    },
+  });
+};
+
+const updateRekening = async (id, data) => {
+  const rek = await prisma.rekening.findUnique({ where: { id } });
+  if (!rek) { const e = new Error('Rekening tidak ditemukan.'); e.statusCode = 404; throw e; }
+  return prisma.rekening.update({
+    where: { id },
+    data: {
+      namaBank: data.namaBank ?? rek.namaBank,
+      noRekening: data.noRekening ?? rek.noRekening,
+      atasNama: data.atasNama ?? rek.atasNama,
+      keterangan: data.keterangan !== undefined ? data.keterangan : rek.keterangan,
+      qrisImage: data.qrisImage !== undefined ? data.qrisImage : rek.qrisImage,
+      isActive: data.isActive !== undefined ? (data.isActive === 'true' || data.isActive === true) : rek.isActive,
+    },
+  });
+};
+
+const deleteRekening = async (id) => {
+  const rek = await prisma.rekening.findUnique({ where: { id } });
+  if (!rek) { const e = new Error('Rekening tidak ditemukan.'); e.statusCode = 404; throw e; }
+  return prisma.rekening.delete({ where: { id } });
+};
+
+// ─── Program Donasi ───────────────────────────────────────────────────────────
+const getAllProgram = async () => {
+  return prisma.programDonasi.findMany({ orderBy: [{ urutan: 'asc' }, { createdAt: 'desc' }] });
+};
+
+const getActiveProgram = async () => {
+  return prisma.programDonasi.findMany({
+    where: { isActive: true },
+    orderBy: [{ urutan: 'asc' }, { createdAt: 'desc' }],
+  });
+};
+
+const createProgram = async (data) => {
+  return prisma.programDonasi.create({
+    data: {
+      judul: data.judul,
+      deskripsi: data.deskripsi || null,
+      target: parseFloat(data.target),
+      terkumpul: parseFloat(data.terkumpul || 0),
+      isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+      urutan: parseInt(data.urutan || 0),
+    },
+  });
+};
+
+const updateProgram = async (id, data) => {
+  const prog = await prisma.programDonasi.findUnique({ where: { id } });
+  if (!prog) { const e = new Error('Program donasi tidak ditemukan.'); e.statusCode = 404; throw e; }
+  return prisma.programDonasi.update({
+    where: { id },
+    data: {
+      judul: data.judul,
+      deskripsi: data.deskripsi ?? prog.deskripsi,
+      target: data.target !== undefined ? parseFloat(data.target) : undefined,
+      terkumpul: data.terkumpul !== undefined ? parseFloat(data.terkumpul) : undefined,
+      isActive: data.isActive !== undefined ? Boolean(data.isActive) : undefined,
+      urutan: data.urutan !== undefined ? parseInt(data.urutan) : undefined,
+    },
+  });
+};
+
+const deleteProgram = async (id) => {
+  const prog = await prisma.programDonasi.findUnique({ where: { id } });
+  if (!prog) { const e = new Error('Program donasi tidak ditemukan.'); e.statusCode = 404; throw e; }
+  return prisma.programDonasi.delete({ where: { id } });
+};
+
+module.exports = { getAll, create, updateStatus, getSummary, getRekening, createRekening, updateRekening, deleteRekening, getAllProgram, getActiveProgram, createProgram, updateProgram, deleteProgram };
