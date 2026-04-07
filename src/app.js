@@ -6,6 +6,9 @@ const authRoutes = require('./routes/auth.routes');
 const kajianRoutes = require('./routes/kajian.routes');
 const artikelRoutes = require('./routes/artikel.routes');
 const donasiRoutes = require('./routes/donasi.routes');
+const galeriRoutes = require('./routes/galeri.routes');
+const streamingRoutes = require('./routes/streaming.routes');
+const sosialRoutes = require('./routes/sosial.routes');
 const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
@@ -26,6 +29,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/kajian', kajianRoutes);
 app.use('/api/artikel', artikelRoutes);
 app.use('/api/donasi', donasiRoutes);
+app.use('/api/galeri', galeriRoutes);
+app.use('/api/streaming', streamingRoutes);
+app.use('/api/sosial', sosialRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

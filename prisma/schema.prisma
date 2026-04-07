@@ -105,6 +105,61 @@ model Rekening {
   @@map("rekening")
 }
 
+// ─── Galeri (Kegiatan Ramadhan & Sholat Ied) ─────────────────────────────────
+enum KategoriGaleri {
+  RAMADHAN
+  SHOLAT_IED
+}
+
+model Galeri {
+  id         String         @id @default(uuid())
+  judul      String
+  foto       String
+  kategori   KategoriGaleri
+  keterangan String?
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  @@map("galeri")
+}
+
+// ─── Streaming (Mias TV) ──────────────────────────────────────────────────────
+model Streaming {
+  id        String   @id @default(uuid())
+  judul     String
+  url       String
+  deskripsi String?
+  isLive    Boolean  @default(false) @map("is_live")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("streaming")
+}
+
+// ─── Program Sosial ───────────────────────────────────────────────────────────
+enum KategoriSosial {
+  SANTUNAN_ANAK_YATIM
+  AIR_GALON_GRATIS
+  LAYANAN_KESEHATAN_IBU_ANAK
+  ARMALAH_AL_MISKIN
+  BANTUAN_PENGOBATAN
+  ZAKAT_MAAL
+}
+
+model SosialFoto {
+  id         String         @id @default(uuid())
+  judul      String
+  foto       String
+  kategori   KategoriSosial
+  deskripsi  String?
+  tahun      Int
+  urutan     Int            @default(0)
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  @@map("sosial_foto")
+}
+
 // ─── Program Donasi ───────────────────────────────────────────────────────────
 model ProgramDonasi {
   id          String   @id @default(uuid())

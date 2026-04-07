@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "sosial_foto" ADD COLUMN "tahun" INTEGER NOT NULL DEFAULT 2026;
