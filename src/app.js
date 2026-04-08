@@ -9,6 +9,11 @@ const donasiRoutes = require('./routes/donasi.routes');
 const galeriRoutes = require('./routes/galeri.routes');
 const streamingRoutes = require('./routes/streaming.routes');
 const sosialRoutes = require('./routes/sosial.routes');
+const pendidikanRoutes = require('./routes/pendidikan.routes');
+const usahaRoutes = require('./routes/usaha.routes');
+const settingRoutes = require('./routes/setting.routes');
+const youtubeRoutes = require('./routes/youtube.routes');
+const profilRoutes  = require('./routes/profil.routes');
 const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
@@ -32,6 +37,11 @@ app.use('/api/donasi', donasiRoutes);
 app.use('/api/galeri', galeriRoutes);
 app.use('/api/streaming', streamingRoutes);
 app.use('/api/sosial', sosialRoutes);
+app.use('/api/pendidikan', pendidikanRoutes);
+app.use('/api/usaha', usahaRoutes);
+app.use('/api/setting', settingRoutes);
+app.use('/api/youtube', youtubeRoutes);
+app.use('/api/profil',  profilRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

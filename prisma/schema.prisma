@@ -175,6 +175,167 @@ model ProgramDonasi {
   @@map("program_donasi")
 }
 
+// ─── Pendidikan ───────────────────────────────────────────────────────────────
+enum KategoriPendidikan {
+  TAHSIN_IKHWAN
+  TAHSIN_AKHWAT
+  BAHASA_ARAB_IKHWAN
+  BAHASA_ARAB_AKHWAT
+  TPQ
+}
+
+model PendidikanInfo {
+  id                 String              @id @default(uuid())
+  kategori           KategoriPendidikan  @unique
+  pengajar           String              // JSON array string e.g. '["Ustadz A","Ustadz B"]'
+  jumlahPenuntutIlmu Int                 @default(0) @map("jumlah_penuntut_ilmu")
+  kitab              String              // JSON array string e.g. '["Kitab A","Kitab B"]'
+  deskripsi          String?
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+
+  @@map("pendidikan_info")
+}
+
+model PendidikanFoto {
+  id         String             @id @default(uuid())
+  kategori   KategoriPendidikan
+  judul      String
+  foto       String
+  keterangan String?
+  tahun      Int
+  urutan     Int                @default(0)
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
+
+  @@map("pendidikan_foto")
+}
+
+// ─── Usaha: Umroh ─────────────────────────────────────────────────────────────
+model UmrohProgram {
+  id          String   @id @default(uuid())
+  judul       String
+  flyer       String
+  deskripsi   String?
+  harga       Decimal? @db.Decimal(15, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+  urutan      Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("umroh_program")
+}
+
+// ─── Usaha: Mias Mart ─────────────────────────────────────────────────────────
+model MiasMartProduk {
+  id          String   @id @default(uuid())
+  nama        String
+  foto        String
+  harga       Decimal  @db.Decimal(15, 2)
+  deskripsi   String?
+  linkBeli    String?  @map("link_beli")
+  stok        String?
+  isActive    Boolean  @default(true) @map("is_active")
+  urutan      Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("mias_mart_produk")
+}
+
+// ─── Profil: Sejarah ─────────────────────────────────────────────────────────
+model ProfilSejarah {
+  id        Int      @id @default(1)
+  konten    String?
+  foto      String?
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("profil_sejarah")
+}
+
+// ─── Profil: Visi Misi ────────────────────────────────────────────────────────
+model ProfilVisiMisi {
+  id        Int      @id @default(1)
+  visi      String?
+  misi      String?
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("profil_visi_misi")
+}
+
+// ─── Profil: Fasilitas ────────────────────────────────────────────────────────
+model ProfilFasilitas {
+  id        String   @id @default(uuid())
+  judul     String
+  deskripsi String?
+  urutan    Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  foto      ProfilFasilitasFoto[]
+
+  @@map("profil_fasilitas")
+}
+
+model ProfilFasilitasFoto {
+  id          String          @id @default(uuid())
+  fasilitasId String          @map("fasilitas_id")
+  fasilitas   ProfilFasilitas @relation(fields: [fasilitasId], references: [id], onDelete: Cascade)
+  foto        String
+  caption     String?
+  urutan      Int             @default(0)
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  @@map("profil_fasilitas_foto")
+}
+
+// ─── Profil: Struktur Organisasi ─────────────────────────────────────────────
+model ProfilStruktur {
+  id         Int      @id @default(1)
+  foto       String?
+  keterangan String?
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("profil_struktur")
+}
+
+// ─── Profil: Pemateri ────────────────────────────────────────────────────────
+model ProfilPemateri {
+  id         String        @id @default(uuid())
+  nama       String
+  foto       String?
+  kitab      String?
+  jenis      JenisPemateri @default(RUTIN)
+  keterangan String?
+  urutan     Int           @default(0)
+  isActive   Boolean       @default(true) @map("is_active")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
+
+  @@map("profil_pemateri")
+}
+
+enum JenisPemateri {
+  RUTIN
+  TEMATIK
+}
+
+// ─── Site Settings ────────────────────────────────────────────────────────────
+model SiteSetting {
+  id             Int      @id @default(1)
+  facebook       String?
+  instagram      String?
+  youtube        String?
+  whatsapp       String?
+  alamat         String?
+  telepon        String?
+  email          String?
+  jamOperasional String?  @map("jam_operasional")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
 // ─── Kontak / Pesan ───────────────────────────────────────────────────────────
 model Pesan {
   id        String   @id @default(uuid())

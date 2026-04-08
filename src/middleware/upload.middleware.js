@@ -87,5 +87,20 @@ const uploadGaleri = createUpload('galeri', { width: 1200, quality: 80 });
 // Program Sosial foto: max 1200px wide  ← separate subfolder from galeri
 const uploadSosial = createUpload('sosial', { width: 1200, quality: 80 });
 
-module.exports = { uploadThumbnail, uploadBuktiTransfer, uploadQris, uploadGaleri, uploadSosial };
+// Pendidikan foto: max 1200px wide
+const uploadPendidikan = createUpload('pendidikan', { width: 1200, quality: 80 });
+
+// Umroh flyer: max 1200px wide, higher quality for promotional material
+const uploadUmroh = createUpload('umroh', { width: 1200, quality: 85 });
+
+// Mias Mart produk foto: max 900px, square-ish product images
+const uploadMart = createUpload('mart', { width: 900, quality: 82 });
+
+// Profil foto: sejarah hero, struktur, pemateri
+const uploadProfilFoto   = createUpload('profil', { width: 1200, quality: 82 });
+
+// Fasilitas dokumentasi foto
+const uploadFasilitas = createUpload('profil_fasilitas', { width: 1200, quality: 80 });
+
+module.exports = { uploadThumbnail, uploadBuktiTransfer, uploadQris, uploadGaleri, uploadSosial, uploadPendidikan, uploadUmroh, uploadMart, uploadProfilFoto, uploadFasilitas };
 
