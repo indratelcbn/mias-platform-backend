@@ -1,24 +1,26 @@
 const prisma = require('../lib/prisma');
 
-const getAll = async ({ kategori } = {}) => {
+const getAll = async ({ kategori, tahun } = {}) => {
   const where = {};
   if (kategori) where.kategori = kategori;
+  if (tahun) where.tahun = Number(tahun);
   return prisma.galeri.findMany({
     where,
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ tahun: 'desc' }, { urutan: 'asc' }, { createdAt: 'desc' }],
   });
 };
 
-const getAllAdmin = async ({ page = 1, limit = 20, kategori } = {}) => {
+const getAllAdmin = async ({ page = 1, limit = 20, kategori, tahun } = {}) => {
   const skip = (page - 1) * limit;
   const where = {};
   if (kategori) where.kategori = kategori;
+  if (tahun) where.tahun = Number(tahun);
   const [data, total] = await Promise.all([
     prisma.galeri.findMany({
       where,
       skip,
       take: Number(limit),
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ tahun: 'desc' }, { urutan: 'asc' }, { createdAt: 'desc' }],
     }),
     prisma.galeri.count({ where }),
   ]);

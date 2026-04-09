@@ -10,7 +10,7 @@ const validate = require('../middleware/validate.middleware');
 // ═══════════════════════════════════════════════════════════════════
 
 const umrohCreateValidation = [
-  body('judul').notEmpty().withMessage('Judul program diperlukan.'),
+  body('judul').optional(),
 ];
 
 // GET /api/usaha/umroh/admin
@@ -21,7 +21,7 @@ router.post(
   '/umroh',
   authMiddleware,
   adminOnly,
-  uploadUmroh.single('flyer'),
+  uploadUmroh.array('flyer', 20),
   umrohCreateValidation,
   validate,
   usahaController.createUmroh
@@ -48,7 +48,7 @@ router.get('/umroh', usahaController.getUmrohPublic);
 // ═══════════════════════════════════════════════════════════════════
 
 const martCreateValidation = [
-  body('nama').notEmpty().withMessage('Nama produk diperlukan.'),
+  body('nama').optional(),
   body('harga').notEmpty().withMessage('Harga produk diperlukan.').isNumeric().withMessage('Harga harus berupa angka.'),
 ];
 
@@ -60,7 +60,7 @@ router.post(
   '/mart',
   authMiddleware,
   adminOnly,
-  uploadMart.single('foto'),
+  uploadMart.array('foto', 20),
   martCreateValidation,
   validate,
   usahaController.createMart

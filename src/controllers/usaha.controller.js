@@ -1,4 +1,5 @@
 const usahaService = require('../services/usaha.service');
+const { getUploadedFiles, buildBatchTitle } = require('../lib/batch-upload');
 
 // ═══════════════════════════════════════════════════════════════════
 //  UMROH
@@ -24,19 +25,29 @@ const getUmrohAdmin = async (req, res, next) => {
 
 const createUmroh = async (req, res, next) => {
   try {
-    if (!req.file) {
+    const files = getUploadedFiles(req);
+    if (!files.length) {
       return res.status(400).json({ success: false, message: 'Flyer wajib diunggah.' });
     }
-    const data = {
-      judul: req.body.judul,
-      flyer: `/uploads/umroh/${req.file.filename}`,
-      deskripsi: req.body.deskripsi || null,
-      harga: req.body.harga ? req.body.harga : null,
-      isActive: req.body.isActive !== undefined ? req.body.isActive === 'true' || req.body.isActive === true : true,
-      urutan: req.body.urutan ? Number(req.body.urutan) : 0,
-    };
-    const item = await usahaService.createUmroh(data);
-    res.status(201).json({ success: true, message: 'Program umroh berhasil ditambahkan.', data: item });
+    if (files.length === 1 && !req.body.judul) {
+      return res.status(400).json({ success: false, message: 'Judul program diperlukan.' });
+    }
+    const baseUrutan = req.body.urutan ? Number(req.body.urutan) : 0;
+    const items = await Promise.all(
+      files.map((file, index) => usahaService.createUmroh({
+        judul: buildBatchTitle(req.body.judul, file, index, files.length),
+        flyer: `/uploads/umroh/${file.filename}`,
+        deskripsi: req.body.deskripsi || null,
+        harga: req.body.harga ? req.body.harga : null,
+        isActive: req.body.isActive !== undefined ? req.body.isActive === 'true' || req.body.isActive === true : true,
+        urutan: baseUrutan + index,
+      }))
+    );
+    res.status(201).json({
+      success: true,
+      message: files.length > 1 ? `${files.length} program umroh berhasil ditambahkan.` : 'Program umroh berhasil ditambahkan.',
+      data: files.length > 1 ? items : items[0],
+    });
   } catch (err) {
     next(err);
   }
@@ -93,21 +104,34 @@ const getMartAdmin = async (req, res, next) => {
 
 const createMart = async (req, res, next) => {
   try {
-    if (!req.file) {
+    const files = getUploadedFiles(req);
+    if (!files.length) {
       return res.status(400).json({ success: false, message: 'Foto produk wajib diunggah.' });
     }
-    const data = {
-      nama: req.body.nama,
-      foto: `/uploads/mart/${req.file.filename}`,
-      harga: req.body.harga,
-      deskripsi: req.body.deskripsi || null,
-      linkBeli: req.body.linkBeli || null,
-      stok: req.body.stok || null,
-      isActive: req.body.isActive !== undefined ? req.body.isActive === 'true' || req.body.isActive === true : true,
-      urutan: req.body.urutan ? Number(req.body.urutan) : 0,
-    };
-    const item = await usahaService.createMart(data);
-    res.status(201).json({ success: true, message: 'Produk berhasil ditambahkan.', data: item });
+    if (!req.body.harga) {
+      return res.status(400).json({ success: false, message: 'Harga produk diperlukan.' });
+    }
+    if (files.length === 1 && !req.body.nama) {
+      return res.status(400).json({ success: false, message: 'Nama produk diperlukan.' });
+    }
+    const baseUrutan = req.body.urutan ? Number(req.body.urutan) : 0;
+    const items = await Promise.all(
+      files.map((file, index) => usahaService.createMart({
+        nama: buildBatchTitle(req.body.nama, file, index, files.length),
+        foto: `/uploads/mart/${file.filename}`,
+        harga: req.body.harga,
+        deskripsi: req.body.deskripsi || null,
+        linkBeli: req.body.linkBeli || null,
+        stok: req.body.stok || null,
+        isActive: req.body.isActive !== undefined ? req.body.isActive === 'true' || req.body.isActive === true : true,
+        urutan: baseUrutan + index,
+      }))
+    );
+    res.status(201).json({
+      success: true,
+      message: files.length > 1 ? `${files.length} produk berhasil ditambahkan.` : 'Produk berhasil ditambahkan.',
+      data: files.length > 1 ? items : items[0],
+    });
   } catch (err) {
     next(err);
   }

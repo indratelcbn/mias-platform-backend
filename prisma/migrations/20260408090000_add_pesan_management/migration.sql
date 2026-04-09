@@ -1,0 +1,31 @@
+-- CreateEnum
+CREATE TYPE "KategoriPesan" AS ENUM (
+  'FASILITAS',
+  'DIVISI_DAKWAH',
+  'DIVISI_PENDIDIKAN',
+  'DIVISI_SOSIAL',
+  'UMROH',
+  'PEMBELIAN_PRODUK_MIAS_MART',
+  'LAIN_LAIN'
+);
+
+-- CreateEnum
+CREATE TYPE "StatusPesan" AS ENUM (
+  'BELUM_DITINDAKLANJUTI',
+  'SUDAH_DITINDAKLANJUTI'
+);
+
+-- AlterTable
+ALTER TABLE "pesan"
+ADD COLUMN "no_hp" TEXT,
+ADD COLUMN "kategori" "KategoriPesan",
+ADD COLUMN "status" "StatusPesan" NOT NULL DEFAULT 'BELUM_DITINDAKLANJUTI',
+ADD COLUMN "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+UPDATE "pesan"
+SET "no_hp" = COALESCE("no_hp", '-'),
+    "kategori" = COALESCE("kategori", 'LAIN_LAIN'::"KategoriPesan");
+
+ALTER TABLE "pesan"
+ALTER COLUMN "no_hp" SET NOT NULL,
+ALTER COLUMN "kategori" SET NOT NULL;

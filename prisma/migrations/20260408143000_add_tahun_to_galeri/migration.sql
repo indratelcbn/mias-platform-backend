@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "galeri" ADD COLUMN "tahun" INTEGER NOT NULL DEFAULT 2026;

@@ -14,7 +14,7 @@ const VALID_KATEGORI = [
 ];
 
 const fotoCreateValidation = [
-  body('judul').notEmpty().withMessage('Judul foto diperlukan.'),
+  body('judul').optional(),
   body('kategori').isIn(VALID_KATEGORI).withMessage('Kategori tidak valid.'),
   body('tahun').optional().isInt({ min: 2000, max: 2100 }).withMessage('Tahun tidak valid.'),
 ];
@@ -48,7 +48,7 @@ router.post(
   '/foto',
   authMiddleware,
   adminOnly,
-  uploadPendidikan.single('foto'),
+  uploadPendidikan.array('foto', 20),
   fotoCreateValidation,
   validate,
   pendidikanController.createFoto

@@ -1,4 +1,5 @@
 const sosialService = require('../services/sosial.service');
+const { getUploadedFiles, buildBatchTitle } = require('../lib/batch-upload');
 
 const getByKategori = async (req, res, next) => {
   try {
@@ -24,19 +25,29 @@ const getAllAdmin = async (req, res, next) => {
 
 const create = async (req, res, next) => {
   try {
-    if (!req.file) {
+    const files = getUploadedFiles(req);
+    if (!files.length) {
       return res.status(400).json({ success: false, message: 'Foto wajib diunggah.' });
     }
-    const data = {
-      judul: req.body.judul,
-      foto: `/uploads/sosial/${req.file.filename}`,
-      kategori: req.body.kategori,
-      deskripsi: req.body.deskripsi || null,
-      urutan: req.body.urutan ? Number(req.body.urutan) : 0,
-      tahun: req.body.tahun ? Number(req.body.tahun) : new Date().getFullYear(),
-    };
-    const item = await sosialService.create(data);
-    res.status(201).json({ success: true, message: 'Foto berhasil ditambahkan.', data: item });
+    if (files.length === 1 && !req.body.judul) {
+      return res.status(400).json({ success: false, message: 'Judul foto diperlukan.' });
+    }
+    const baseUrutan = req.body.urutan ? Number(req.body.urutan) : 0;
+    const items = await Promise.all(
+      files.map((file, index) => sosialService.create({
+        judul: buildBatchTitle(req.body.judul, file, index, files.length),
+        foto: `/uploads/sosial/${file.filename}`,
+        kategori: req.body.kategori,
+        deskripsi: req.body.deskripsi || null,
+        urutan: baseUrutan + index,
+        tahun: req.body.tahun ? Number(req.body.tahun) : new Date().getFullYear(),
+      }))
+    );
+    res.status(201).json({
+      success: true,
+      message: files.length > 1 ? `${files.length} foto berhasil ditambahkan.` : 'Foto berhasil ditambahkan.',
+      data: files.length > 1 ? items : items[0],
+    });
   } catch (err) {
     next(err);
   }

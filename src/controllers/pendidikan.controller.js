@@ -1,4 +1,5 @@
 const pendidikanService = require('../services/pendidikan.service');
+const { getUploadedFiles, buildBatchTitle } = require('../lib/batch-upload');
 
 // ─── Public: get full data for one kategori ────────────────────────────────────
 const getByKategori = async (req, res, next) => {
@@ -56,19 +57,29 @@ const getAllFotoAdmin = async (req, res, next) => {
 // ─── Admin: create foto ────────────────────────────────────────────────────────
 const createFoto = async (req, res, next) => {
   try {
-    if (!req.file) {
+    const files = getUploadedFiles(req);
+    if (!files.length) {
       return res.status(400).json({ success: false, message: 'Foto wajib diunggah.' });
     }
-    const data = {
-      kategori: req.body.kategori,
-      judul: req.body.judul,
-      foto: `/uploads/pendidikan/${req.file.filename}`,
-      keterangan: req.body.keterangan || null,
-      tahun: req.body.tahun ? Number(req.body.tahun) : new Date().getFullYear(),
-      urutan: req.body.urutan ? Number(req.body.urutan) : 0,
-    };
-    const item = await pendidikanService.createFoto(data);
-    res.status(201).json({ success: true, message: 'Foto berhasil ditambahkan.', data: item });
+    if (files.length === 1 && !req.body.judul) {
+      return res.status(400).json({ success: false, message: 'Judul foto diperlukan.' });
+    }
+    const baseUrutan = req.body.urutan ? Number(req.body.urutan) : 0;
+    const items = await Promise.all(
+      files.map((file, index) => pendidikanService.createFoto({
+        kategori: req.body.kategori,
+        judul: buildBatchTitle(req.body.judul, file, index, files.length),
+        foto: `/uploads/pendidikan/${file.filename}`,
+        keterangan: req.body.keterangan || null,
+        tahun: req.body.tahun ? Number(req.body.tahun) : new Date().getFullYear(),
+        urutan: baseUrutan + index,
+      }))
+    );
+    res.status(201).json({
+      success: true,
+      message: files.length > 1 ? `${files.length} foto berhasil ditambahkan.` : 'Foto berhasil ditambahkan.',
+      data: files.length > 1 ? items : items[0],
+    });
   } catch (err) {
     next(err);
   }

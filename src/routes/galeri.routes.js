@@ -6,8 +6,10 @@ const { uploadGaleri } = require('../middleware/upload.middleware');
 const validate = require('../middleware/validate.middleware');
 
 const galeriValidation = [
-  body('judul').notEmpty().withMessage('Judul foto diperlukan.'),
+  body('judul').optional(),
   body('kategori').isIn(['RAMADHAN', 'SHOLAT_IED']).withMessage('Kategori tidak valid.'),
+  body('tahun').isInt({ min: 2000, max: 2100 }).withMessage('Tahun tidak valid.'),
+  body('urutan').optional().isInt({ min: 0, max: 9999 }).withMessage('Urutan tidak valid.'),
 ];
 
 // ─── Public Routes ─────────────────────────────────────────────────────────────
@@ -26,7 +28,7 @@ router.post(
   '/',
   authMiddleware,
   adminOnly,
-  uploadGaleri.single('foto'),
+  uploadGaleri.array('foto', 20),
   galeriValidation,
   validate,
   galeriController.create
@@ -38,6 +40,8 @@ router.put(
   authMiddleware,
   adminOnly,
   uploadGaleri.single('foto'),
+  body('tahun').optional().isInt({ min: 2000, max: 2100 }).withMessage('Tahun tidak valid.'),
+  body('urutan').optional().isInt({ min: 0, max: 9999 }).withMessage('Urutan tidak valid.'),
   validate,
   galeriController.update
 );

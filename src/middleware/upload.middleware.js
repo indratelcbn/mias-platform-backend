@@ -34,27 +34,34 @@ const createUpload = (subfolder, { width, height, quality = 80, maxSizeMB = 10 }
     limits: { fileSize: maxSizeMB * 1024 * 1024 },
   });
 
+  const processOneFile = async (file) => {
+    const dir = path.join(__dirname, '../../uploads', subfolder);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+
+    const filename = `${uuidv4()}.webp`;
+    const outputPath = path.join(dir, filename);
+
+    let img = sharp(file.buffer);
+    if (width || height) {
+      img = img.resize(width, height, { fit: 'inside', withoutEnlargement: true });
+    }
+    await img.webp({ quality }).toFile(outputPath);
+
+    file.filename = filename;
+    file.path = outputPath;
+    file.destination = dir;
+    delete file.buffer;
+    return file;
+  };
+
   const processWithSharp = async (req, res, next) => {
-    if (!req.file) return next();
+    if (!req.file && !(Array.isArray(req.files) && req.files.length)) return next();
     try {
-      const dir = path.join(__dirname, '../../uploads', subfolder);
-      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-      const filename = `${uuidv4()}.webp`;
-      const outputPath = path.join(dir, filename);
-
-      let img = sharp(req.file.buffer);
-      if (width || height) {
-        img = img.resize(width, height, { fit: 'inside', withoutEnlargement: true });
+      if (Array.isArray(req.files) && req.files.length) {
+        req.files = await Promise.all(req.files.map((file) => processOneFile(file)));
+      } else if (req.file) {
+        req.file = await processOneFile(req.file);
       }
-      await img.webp({ quality }).toFile(outputPath);
-
-      // Patch req.file so controllers keep working without any changes
-      req.file.filename = filename;
-      req.file.path = outputPath;
-      req.file.destination = dir;
-      delete req.file.buffer; // free memory
-
       next();
     } catch (err) {
       next(err);
@@ -64,6 +71,12 @@ const createUpload = (subfolder, { width, height, quality = 80, maxSizeMB = 10 }
   return {
     single: (fieldname) => (req, res, next) => {
       multerMemory.single(fieldname)(req, res, (err) => {
+        if (err) return next(err);
+        processWithSharp(req, res, next);
+      });
+    },
+    array: (fieldname, maxCount = 20) => (req, res, next) => {
+      multerMemory.array(fieldname, maxCount)(req, res, (err) => {
         if (err) return next(err);
         processWithSharp(req, res, next);
       });
@@ -84,6 +97,9 @@ const uploadQris = createUpload('qris', { width: 600, height: 600, quality: 88 }
 // Galeri foto (Ramadhan / Sholat Ied): max 1200px wide
 const uploadGaleri = createUpload('galeri', { width: 1200, quality: 80 });
 
+// Dokumentasi Qurban: max 1200px wide
+const uploadQurban = createUpload('qurban', { width: 1200, quality: 80 });
+
 // Program Sosial foto: max 1200px wide  ← separate subfolder from galeri
 const uploadSosial = createUpload('sosial', { width: 1200, quality: 80 });
 
@@ -102,5 +118,5 @@ const uploadProfilFoto   = createUpload('profil', { width: 1200, quality: 82 });
 // Fasilitas dokumentasi foto
 const uploadFasilitas = createUpload('profil_fasilitas', { width: 1200, quality: 80 });
 
-module.exports = { uploadThumbnail, uploadBuktiTransfer, uploadQris, uploadGaleri, uploadSosial, uploadPendidikan, uploadUmroh, uploadMart, uploadProfilFoto, uploadFasilitas };
+module.exports = { uploadThumbnail, uploadBuktiTransfer, uploadQris, uploadGaleri, uploadQurban, uploadSosial, uploadPendidikan, uploadUmroh, uploadMart, uploadProfilFoto, uploadFasilitas };
 

@@ -15,7 +15,7 @@ const VALID_KATEGORI = [
 ];
 
 const createValidation = [
-  body('judul').notEmpty().withMessage('Judul foto diperlukan.'),
+  body('judul').optional(),
   body('kategori').isIn(VALID_KATEGORI).withMessage('Kategori tidak valid.'),
 ];
 
@@ -32,7 +32,7 @@ router.post(
   '/',
   authMiddleware,
   adminOnly,
-  uploadSosial.single('foto'),
+  uploadSosial.array('foto', 20),
   createValidation,
   validate,
   sosialController.create

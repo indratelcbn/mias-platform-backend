@@ -77,6 +77,10 @@ async function deleteFasilitas(req, res, next) {
 async function addFasilitasFoto(req, res, next) {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'Foto wajib diunggah.' });
+    const fasilitas = await svc.getFasilitasById(req.params.id);
+    if (fasilitas.foto.length >= 6) {
+      return res.status(400).json({ success: false, message: 'Maksimal 6 foto per fasilitas.' });
+    }
     const row = await svc.addFasilitasFoto(req.params.id, req.file.filename, req.body.caption, req.body.urutan);
     res.status(201).json({ success: true, data: row });
   } catch (err) { next(err); }
@@ -118,6 +122,8 @@ async function createPemateri(req, res, next) {
       nama:       req.body.nama,
       kitab:      req.body.kitab   || null,
       jenis:      req.body.jenis   || 'RUTIN',
+      waktu:      req.body.waktu   || null,
+      jam:        req.body.jam     || null,
       keterangan: req.body.keterangan || null,
       urutan:     Number(req.body.urutan) || 0,
       isActive:   req.body.isActive !== undefined ? req.body.isActive === 'true' || req.body.isActive === true : true,
@@ -133,6 +139,8 @@ async function updatePemateri(req, res, next) {
     if (req.body.nama       !== undefined) data.nama       = req.body.nama;
     if (req.body.kitab      !== undefined) data.kitab      = req.body.kitab      || null;
     if (req.body.jenis      !== undefined) data.jenis      = req.body.jenis;
+    if (req.body.waktu      !== undefined) data.waktu      = req.body.waktu      || null;
+    if (req.body.jam        !== undefined) data.jam        = req.body.jam        || null;
     if (req.body.keterangan !== undefined) data.keterangan = req.body.keterangan || null;
     if (req.body.urutan     !== undefined) data.urutan     = Number(req.body.urutan) || 0;
     if (req.body.isActive   !== undefined) data.isActive   = req.body.isActive === 'true' || req.body.isActive === true;

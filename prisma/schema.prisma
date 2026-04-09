@@ -117,10 +117,26 @@ model Galeri {
   foto       String
   kategori   KategoriGaleri
   keterangan String?
+  tahun      Int            @default(2026)
+  urutan     Int            @default(0)
   createdAt  DateTime       @default(now()) @map("created_at")
   updatedAt  DateTime       @updatedAt @map("updated_at")
 
   @@map("galeri")
+}
+
+// ─── Dokumentasi Qurban ─────────────────────────────────────────────────────
+model QurbanFoto {
+  id         String   @id @default(uuid())
+  judul      String
+  foto       String
+  keterangan String?
+  tahun      Int
+  urutan     Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("qurban_foto")
 }
 
 // ─── Streaming (Mias TV) ──────────────────────────────────────────────────────
@@ -306,6 +322,8 @@ model ProfilPemateri {
   foto       String?
   kitab      String?
   jenis      JenisPemateri @default(RUTIN)
+  waktu      String?       // e.g. "Pekan 1, Pekan 3" comma-separated (only for RUTIN)
+  jam        String?       // e.g. "Ba'da Maghrib - Selesai" (only for RUTIN)
   keterangan String?
   urutan     Int           @default(0)
   isActive   Boolean       @default(true) @map("is_active")
@@ -341,10 +359,29 @@ model Pesan {
   id        String   @id @default(uuid())
   nama      String
   email     String
+  noHp      String   @map("no_hp")
+  kategori  KategoriPesan
   subjek    String?
   pesan     String
   isRead    Boolean  @default(false) @map("is_read")
+  status    StatusPesan @default(BELUM_DITINDAKLANJUTI)
   createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("pesan")
+}
+
+enum KategoriPesan {
+  FASILITAS
+  DIVISI_DAKWAH
+  DIVISI_PENDIDIKAN
+  DIVISI_SOSIAL
+  UMROH
+  PEMBELIAN_PRODUK_MIAS_MART
+  LAIN_LAIN
+}
+
+enum StatusPesan {
+  BELUM_DITINDAKLANJUTI
+  SUDAH_DITINDAKLANJUTI
 }
