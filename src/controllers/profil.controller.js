@@ -125,6 +125,7 @@ async function createPemateri(req, res, next) {
       waktu:      req.body.waktu   || null,
       jam:        req.body.jam     || null,
       keterangan: req.body.keterangan || null,
+      youtube:    req.body.youtube    || null,
       urutan:     Number(req.body.urutan) || 0,
       isActive:   req.body.isActive !== undefined ? req.body.isActive === 'true' || req.body.isActive === true : true,
     };
@@ -142,6 +143,7 @@ async function updatePemateri(req, res, next) {
     if (req.body.waktu      !== undefined) data.waktu      = req.body.waktu      || null;
     if (req.body.jam        !== undefined) data.jam        = req.body.jam        || null;
     if (req.body.keterangan !== undefined) data.keterangan = req.body.keterangan || null;
+    if (req.body.youtube    !== undefined) data.youtube    = req.body.youtube    || null;
     if (req.body.urutan     !== undefined) data.urutan     = Number(req.body.urutan) || 0;
     if (req.body.isActive   !== undefined) data.isActive   = req.body.isActive === 'true' || req.body.isActive === true;
     const row = await svc.updatePemateri(req.params.id, data, req.file?.filename);

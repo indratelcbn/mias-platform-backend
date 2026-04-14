@@ -22,7 +22,18 @@ const getAll = async ({ page = 1, limit = 10, status } = {}) => {
 };
 
 const create = async (data) => {
-  return prisma.donasi.create({ data });
+  return prisma.donasi.create({
+    data: {
+      nama: data.nama,
+      email: data.email || null,
+      telepon: data.telepon || null,
+      jenisProgram: data.jenisProgram || null,
+      namaProgram: data.namaProgram || null,
+      jumlah: data.jumlah,
+      pesan: data.pesan || null,
+      buktiTransfer: data.buktiTransfer || null,
+    },
+  });
 };
 
 const updateStatus = async (id, status) => {
@@ -32,7 +43,59 @@ const updateStatus = async (id, status) => {
     err.statusCode = 404;
     throw err;
   }
-  return prisma.donasi.update({ where: { id }, data: { status } });
+  const updated = await prisma.donasi.update({ where: { id }, data: { status } });
+
+  // Recalculate terkumpul for all programs
+  await recalcAllTerkumpul();
+
+  return updated;
+};
+
+/**
+ * Recalculate terkumpul for ALL programs (donasi + wakaf)
+ * by aggregating VERIFIED donations grouped by jenisProgram + namaProgram.
+ */
+const recalcAllTerkumpul = async () => {
+  // Get all VERIFIED donations that have a program assigned
+  const verifiedDonations = await prisma.donasi.findMany({
+    where: { status: 'VERIFIED', namaProgram: { not: null } },
+    select: { jenisProgram: true, namaProgram: true, jumlah: true },
+  });
+
+  // Build a map: { "DONASI|[KODE] Judul": totalAmount, "WAKAF|[KODE] Kegiatan": totalAmount }
+  const totalsMap = {};
+  for (const d of verifiedDonations) {
+    const key = `${d.jenisProgram}|${d.namaProgram}`;
+    totalsMap[key] = (totalsMap[key] || 0) + Number(d.jumlah);
+  }
+
+  // Build label lookup for Program Donasi
+  const allDonasi = await prisma.programDonasi.findMany();
+  for (const p of allDonasi) {
+    const label = p.kode ? `[${p.kode}] ${p.judul}` : p.judul;
+    const key = `DONASI|${label}`;
+    const terkumpul = totalsMap[key] || 0;
+    if (Number(p.terkumpul) !== terkumpul) {
+      await prisma.programDonasi.update({
+        where: { id: p.id },
+        data: { terkumpul },
+      });
+    }
+  }
+
+  // Build label lookup for Program Wakaf
+  const allWakaf = await prisma.programWakaf.findMany();
+  for (const p of allWakaf) {
+    const label = p.kode ? `[${p.kode}] ${p.kegiatan}` : p.kegiatan;
+    const key = `WAKAF|${label}`;
+    const terkumpul = totalsMap[key] || 0;
+    if (Number(p.terkumpul) !== terkumpul) {
+      await prisma.programWakaf.update({
+        where: { id: p.id },
+        data: { terkumpul },
+      });
+    }
+  }
 };
 
 const getSummary = async () => {
@@ -103,10 +166,11 @@ const getActiveProgram = async () => {
 const createProgram = async (data) => {
   return prisma.programDonasi.create({
     data: {
+      kode: data.kode || null,
       judul: data.judul,
       deskripsi: data.deskripsi || null,
-      target: parseFloat(data.target),
-      terkumpul: parseFloat(data.terkumpul || 0),
+      target: data.target ? parseFloat(data.target) : 0,
+      terkumpul: data.terkumpul ? parseFloat(data.terkumpul) : 0,
       isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
       urutan: parseInt(data.urutan || 0),
     },
@@ -119,6 +183,7 @@ const updateProgram = async (id, data) => {
   return prisma.programDonasi.update({
     where: { id },
     data: {
+      kode: data.kode !== undefined ? (data.kode || null) : undefined,
       judul: data.judul,
       deskripsi: data.deskripsi ?? prog.deskripsi,
       target: data.target !== undefined ? parseFloat(data.target) : undefined,
@@ -135,4 +200,51 @@ const deleteProgram = async (id) => {
   return prisma.programDonasi.delete({ where: { id } });
 };
 
-module.exports = { getAll, create, updateStatus, getSummary, getRekening, createRekening, updateRekening, deleteRekening, getAllProgram, getActiveProgram, createProgram, updateProgram, deleteProgram };
+// ─── Program Wakaf ────────────────────────────────────────────────────────────
+const getAllWakaf = async () => {
+  return prisma.programWakaf.findMany({ orderBy: [{ urutan: 'asc' }, { createdAt: 'desc' }] });
+};
+
+const getActiveWakaf = async () => {
+  return prisma.programWakaf.findMany({
+    where: { isActive: true },
+    orderBy: [{ urutan: 'asc' }, { createdAt: 'desc' }],
+  });
+};
+
+const createWakaf = async (data) => {
+  return prisma.programWakaf.create({
+    data: {
+      kode: data.kode || null,
+      kegiatan: data.kegiatan,
+      deskripsi: data.deskripsi || null,
+      target: data.target ? parseFloat(data.target) : 0,
+      isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+      urutan: parseInt(data.urutan || 0),
+    },
+  });
+};
+
+const updateWakaf = async (id, data) => {
+  const prog = await prisma.programWakaf.findUnique({ where: { id } });
+  if (!prog) { const e = new Error('Program wakaf tidak ditemukan.'); e.statusCode = 404; throw e; }
+  return prisma.programWakaf.update({
+    where: { id },
+    data: {
+      kode: data.kode !== undefined ? (data.kode || null) : undefined,
+      kegiatan: data.kegiatan !== undefined ? data.kegiatan : undefined,
+      deskripsi: data.deskripsi !== undefined ? (data.deskripsi || null) : undefined,
+      target: data.target !== undefined ? (data.target ? parseFloat(data.target) : 0) : undefined,
+      isActive: data.isActive !== undefined ? Boolean(data.isActive) : undefined,
+      urutan: data.urutan !== undefined ? parseInt(data.urutan) : undefined,
+    },
+  });
+};
+
+const deleteWakaf = async (id) => {
+  const prog = await prisma.programWakaf.findUnique({ where: { id } });
+  if (!prog) { const e = new Error('Program wakaf tidak ditemukan.'); e.statusCode = 404; throw e; }
+  return prisma.programWakaf.delete({ where: { id } });
+};
+
+module.exports = { getAll, create, updateStatus, getSummary, recalcAllTerkumpul, getRekening, createRekening, updateRekening, deleteRekening, getAllProgram, getActiveProgram, createProgram, updateProgram, deleteProgram, getAllWakaf, getActiveWakaf, createWakaf, updateWakaf, deleteWakaf };

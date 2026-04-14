@@ -54,12 +54,30 @@ router.post(
   authMiddleware, adminOnly,
   [
     body('judul').notEmpty().withMessage('Judul program diperlukan.'),
-    body('target').isNumeric().withMessage('Target harus berupa angka.'),
+    body('target').optional({ values: 'falsy' }).isNumeric().withMessage('Target harus berupa angka.'),
   ],
   validate,
   donasiController.createProgram
 );
 router.put('/program/:id', authMiddleware, adminOnly, donasiController.updateProgram);
 router.delete('/program/:id', authMiddleware, adminOnly, donasiController.deleteProgram);
+
+// Program Wakaf public & admin CRUD
+router.get('/wakaf', donasiController.getActiveWakaf);
+router.get('/wakaf/all', authMiddleware, adminOnly, donasiController.getAllWakaf);
+router.post(
+  '/wakaf',
+  authMiddleware, adminOnly,
+  [
+    body('kegiatan').notEmpty().withMessage('Kegiatan program wakaf diperlukan.'),
+  ],
+  validate,
+  donasiController.createWakaf
+);
+router.put('/wakaf/:id', authMiddleware, adminOnly, donasiController.updateWakaf);
+router.delete('/wakaf/:id', authMiddleware, adminOnly, donasiController.deleteWakaf);
+
+// Recalculate terkumpul
+router.post('/recalc-terkumpul', authMiddleware, adminOnly, donasiController.recalcTerkumpul);
 
 module.exports = router;

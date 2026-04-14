@@ -75,6 +75,8 @@ model Donasi {
   nama          String
   email         String?
   telepon       String?
+  jenisProgram  String?      @map("jenis_program")
+  namaProgram   String?      @map("nama_program")
   jumlah        Decimal      @db.Decimal(15, 2)
   pesan         String?
   buktiTransfer String?      @map("bukti_transfer")
@@ -176,9 +178,43 @@ model SosialFoto {
   @@map("sosial_foto")
 }
 
+// ─── Data Mustahik ────────────────────────────────────────────────────────────
+enum KategoriMustahik {
+  YATIM
+  JANDA
+  FAKIR
+  MISKIN
+  GHARIM
+  FII_SABILILLAH
+  MUSAFIR
+}
+
+enum HakMustahik {
+  PENERIMA_ZAKAT_MAL
+  PENERIMA_ZAKAT_FITRI
+  PENERIMA_BANTUAN_MIAS
+  SEMUA
+}
+
+model Mustahik {
+  id        String           @id @default(uuid())
+  nama      String
+  alamat    String?
+  kabKota   String?          @map("kab_kota")
+  provinsi  String?
+  telepon   String?
+  kategori  KategoriMustahik
+  berhak    HakMustahik      @default(SEMUA)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  @@map("mustahik")
+}
+
 // ─── Program Donasi ───────────────────────────────────────────────────────────
 model ProgramDonasi {
   id          String   @id @default(uuid())
+  kode        String?
   judul       String
   deskripsi   String?
   target      Decimal  @db.Decimal(15, 2)
@@ -189,6 +225,22 @@ model ProgramDonasi {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("program_donasi")
+}
+
+// ─── Program Wakaf ────────────────────────────────────────────────────────────
+model ProgramWakaf {
+  id          String   @id @default(uuid())
+  kode        String?
+  kegiatan    String
+  deskripsi   String?
+  target      Decimal  @default(0) @db.Decimal(15, 2)
+  terkumpul   Decimal  @default(0) @db.Decimal(15, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+  urutan      Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("program_wakaf")
 }
 
 // ─── Pendidikan ───────────────────────────────────────────────────────────────
@@ -325,6 +377,7 @@ model ProfilPemateri {
   waktu      String?       // e.g. "Pekan 1, Pekan 3" comma-separated (only for RUTIN)
   jam        String?       // e.g. "Ba'da Maghrib - Selesai" (only for RUTIN)
   keterangan String?
+  youtube    String?
   urutan     Int           @default(0)
   isActive   Boolean       @default(true) @map("is_active")
   createdAt  DateTime      @default(now()) @map("created_at")

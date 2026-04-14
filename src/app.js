@@ -20,6 +20,7 @@ const youtubeRoutes = require('./routes/youtube.routes');
 const profilRoutes  = require('./routes/profil.routes');
 const pesanRoutes = require('./routes/pesan.routes');
 const qurbanRoutes = require('./routes/qurban.routes');
+const mustahikRoutes = require('./routes/mustahik.routes');
 const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
@@ -83,6 +84,7 @@ app.use('/api/youtube', youtubeRoutes);
 app.use('/api/profil',  profilRoutes);
 app.use('/api/pesan', pesanRoutes);
 app.use('/api/qurban', qurbanRoutes);
+app.use('/api/mustahik', mustahikRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

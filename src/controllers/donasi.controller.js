@@ -97,5 +97,48 @@ const deleteProgram = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, getRekening, createRekening, updateRekening, deleteRekening, getSummary, create, updateStatus, getActiveProgram, getAllProgram, createProgram, updateProgram, deleteProgram };
+// ─── Program Wakaf ────────────────────────────────────────────────────────────
+const getActiveWakaf = async (req, res, next) => {
+  try {
+    const data = await donasiService.getActiveWakaf();
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+};
+
+const getAllWakaf = async (req, res, next) => {
+  try {
+    const data = await donasiService.getAllWakaf();
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+};
+
+const createWakaf = async (req, res, next) => {
+  try {
+    const data = await donasiService.createWakaf(req.body);
+    res.status(201).json({ success: true, message: 'Program wakaf berhasil ditambahkan.', data });
+  } catch (err) { next(err); }
+};
+
+const updateWakaf = async (req, res, next) => {
+  try {
+    const data = await donasiService.updateWakaf(req.params.id, req.body);
+    res.json({ success: true, message: 'Program wakaf berhasil diperbarui.', data });
+  } catch (err) { next(err); }
+};
+
+const deleteWakaf = async (req, res, next) => {
+  try {
+    await donasiService.deleteWakaf(req.params.id);
+    res.json({ success: true, message: 'Program wakaf berhasil dihapus.' });
+  } catch (err) { next(err); }
+};
+
+const recalcTerkumpul = async (req, res, next) => {
+  try {
+    await donasiService.recalcAllTerkumpul();
+    res.json({ success: true, message: 'Terkumpul berhasil dihitung ulang.' });
+  } catch (err) { next(err); }
+};
+
+module.exports = { getAll, getRekening, createRekening, updateRekening, deleteRekening, getSummary, create, updateStatus, getActiveProgram, getAllProgram, createProgram, updateProgram, deleteProgram, getActiveWakaf, getAllWakaf, createWakaf, updateWakaf, deleteWakaf, recalcTerkumpul };
 
