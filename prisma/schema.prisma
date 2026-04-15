@@ -29,6 +29,20 @@ model User {
 enum Role {
   ADMIN
   SUPERADMIN
+  SOSIAL
+  DAKWAH
+  PENDIDIKAN
+  USAHA
+}
+
+// ─── Role Permissions ─────────────────────────────────────────────────────────
+model RolePermission {
+  id      String @id @default(uuid())
+  role    Role
+  menuKey String @map("menu_key")
+
+  @@unique([role, menuKey])
+  @@map("role_permissions")
 }
 
 // ─── Kajian ───────────────────────────────────────────────────────────────────

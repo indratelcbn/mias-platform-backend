@@ -21,6 +21,7 @@ const profilRoutes  = require('./routes/profil.routes');
 const pesanRoutes = require('./routes/pesan.routes');
 const qurbanRoutes = require('./routes/qurban.routes');
 const mustahikRoutes = require('./routes/mustahik.routes');
+const userRoutes = require('./routes/user.routes');
 const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
@@ -85,6 +86,7 @@ app.use('/api/profil',  profilRoutes);
 app.use('/api/pesan', pesanRoutes);
 app.use('/api/qurban', qurbanRoutes);
 app.use('/api/mustahik', mustahikRoutes);
+app.use('/api/users', userRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

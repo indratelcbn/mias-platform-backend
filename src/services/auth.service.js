@@ -24,6 +24,13 @@ const login = async (username, password) => {
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 
+  // Fetch role permissions
+  const perms = await prisma.rolePermission.findMany({
+    where: { role: user.role },
+    select: { menuKey: true },
+  });
+  const permissions = perms.map((p) => p.menuKey);
+
   return {
     token,
     user: {
@@ -31,6 +38,7 @@ const login = async (username, password) => {
       username: user.username,
       nama: user.nama,
       role: user.role,
+      permissions,
     },
   };
 };
@@ -46,6 +54,12 @@ const getProfile = async (userId) => {
     err.statusCode = 404;
     throw err;
   }
+
+  const perms = await prisma.rolePermission.findMany({
+    where: { role: user.role },
+    select: { menuKey: true },
+  });
+  user.permissions = perms.map((p) => p.menuKey);
 
   return user;
 };

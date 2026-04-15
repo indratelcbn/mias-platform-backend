@@ -1,7 +1,12 @@
 # ── Stage 1: Build ─────────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:22-bookworm-slim AS builder
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
@@ -10,9 +15,13 @@ RUN npm ci --omit=dev
 RUN npx prisma generate
 
 # ── Stage 2: Production ───────────────────────────────────────────────────────
-FROM node:20-alpine
+FROM node:22-bookworm-slim
 
-RUN apk add --no-cache dumb-init
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    dumb-init \
+    openssl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 WORKDIR /app
@@ -21,8 +30,8 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY . .
 
-# uploads volume mount point
-RUN mkdir -p /app/uploads
+RUN mkdir -p /app/uploads \
+    && chown -R node:node /app
 
 EXPOSE 3000
 

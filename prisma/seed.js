@@ -7,6 +7,7 @@ async function main() {
   console.log('🌱 Mulai seeding database...');
 
   // ─── Hapus data lama ──────────────────────────────────────────────────────
+  await prisma.rolePermission.deleteMany();
   await prisma.pesan.deleteMany();
   await prisma.donasi.deleteMany();
   await prisma.artikel.deleteMany();
@@ -26,6 +27,32 @@ async function main() {
     },
   });
   console.log('✅ Admin user dibuat:', admin.username);
+
+  // ─── Default Role Permissions ─────────────────────────────────────────────
+  const allMenus = [
+    'admin-dashboard', 'admin-profil', 'admin-kajian', 'admin-streaming',
+    'admin-galeri', 'admin-sosial', 'admin-mustahik', 'admin-pendidikan',
+    'admin-usaha', 'admin-artikel', 'admin-donasi', 'admin-pesan',
+    'admin-setting', 'admin-users', 'admin-qurban',
+  ];
+
+  const roleMenuMap = {
+    SUPERADMIN: allMenus,
+    ADMIN: allMenus,
+    SOSIAL: ['admin-dashboard', 'admin-sosial', 'admin-mustahik', 'admin-donasi'],
+    DAKWAH: ['admin-dashboard', 'admin-kajian', 'admin-streaming', 'admin-galeri', 'admin-artikel', 'admin-qurban'],
+    PENDIDIKAN: ['admin-dashboard', 'admin-pendidikan'],
+    USAHA: ['admin-dashboard', 'admin-usaha'],
+  };
+
+  const permData = [];
+  for (const [role, menus] of Object.entries(roleMenuMap)) {
+    for (const menuKey of menus) {
+      permData.push({ role, menuKey });
+    }
+  }
+  await prisma.rolePermission.createMany({ data: permData });
+  console.log('✅ Default role permissions dibuat');
 
   // ─── Rekening Donasi ──────────────────────────────────────────────────────
   await prisma.rekening.createMany({
