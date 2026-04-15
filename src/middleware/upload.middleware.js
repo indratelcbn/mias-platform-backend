@@ -118,5 +118,8 @@ const uploadProfilFoto   = createUpload('profil', { width: 1200, quality: 82 });
 // Fasilitas dokumentasi foto
 const uploadFasilitas = createUpload('profil_fasilitas', { width: 1200, quality: 80 });
 
-module.exports = { uploadThumbnail, uploadBuktiTransfer, uploadQris, uploadGaleri, uploadQurban, uploadSosial, uploadPendidikan, uploadUmroh, uploadMart, uploadProfilFoto, uploadFasilitas };
+// Hero Banner: max 1920px wide, high quality for full-width banners
+const uploadHeroBanner = createUpload('hero_banner', { width: 1920, quality: 85 });
+
+module.exports = { uploadThumbnail, uploadBuktiTransfer, uploadQris, uploadGaleri, uploadQurban, uploadSosial, uploadPendidikan, uploadUmroh, uploadMart, uploadProfilFoto, uploadFasilitas, uploadHeroBanner };
 

@@ -1,8 +1,8 @@
--- AlterTable: add kode column to program_donasi
-ALTER TABLE "program_donasi" ADD COLUMN "kode" TEXT;
+-- AlterTable: add kode column to program_donasi (skip if already exists)
+ALTER TABLE "program_donasi" ADD COLUMN IF NOT EXISTS "kode" TEXT;
 
--- CreateTable
-CREATE TABLE "program_wakaf" (
+-- CreateTable (skip if already exists)
+CREATE TABLE IF NOT EXISTS "program_wakaf" (
     "id" TEXT NOT NULL,
     "kode" TEXT,
     "kegiatan" TEXT NOT NULL,
