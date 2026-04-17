@@ -23,6 +23,7 @@ const qurbanRoutes = require('./routes/qurban.routes');
 const mustahikRoutes = require('./routes/mustahik.routes');
 const userRoutes = require('./routes/user.routes');
 const heroBannerRoutes = require('./routes/hero-banner.routes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
@@ -89,6 +90,7 @@ app.use('/api/qurban', qurbanRoutes);
 app.use('/api/mustahik', mustahikRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/hero-banner', heroBannerRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
