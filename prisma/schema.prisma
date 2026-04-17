@@ -83,7 +83,7 @@ model Artikel {
   @@map("artikel")
 }
 
-// ─── Donasi ───────────────────────────────────────────────────────────────────
+// ─── Infaq ────────────────────────────────────────────────────────────────────
 model Donasi {
   id            String       @id @default(uuid())
   nama          String
@@ -225,7 +225,7 @@ model Mustahik {
   @@map("mustahik")
 }
 
-// ─── Program Donasi ───────────────────────────────────────────────────────────
+// ─── Program Infaq ────────────────────────────────────────────────────────────
 model ProgramDonasi {
   id          String   @id @default(uuid())
   kode        String?

@@ -39,7 +39,7 @@ const create = async (data) => {
 const updateStatus = async (id, status) => {
   const donasi = await prisma.donasi.findUnique({ where: { id } });
   if (!donasi) {
-    const err = new Error('Data donasi tidak ditemukan.');
+    const err = new Error('Data infaq tidak ditemukan.');
     err.statusCode = 404;
     throw err;
   }
@@ -52,7 +52,7 @@ const updateStatus = async (id, status) => {
 };
 
 /**
- * Recalculate terkumpul for ALL programs (donasi + wakaf)
+ * Recalculate terkumpul for ALL programs (infaq + wakaf)
  * by aggregating VERIFIED donations grouped by jenisProgram + namaProgram.
  */
 const recalcAllTerkumpul = async () => {
@@ -106,7 +106,7 @@ const getSummary = async () => {
   ]);
 
   return {
-    totalDonasi: total._sum.jumlah || 0,
+    totalInfaq: total._sum.jumlah || 0,
     terverifikasi: verified._sum.jumlah || 0,
     pendingKonfirmasi: pending,
   };
@@ -179,7 +179,7 @@ const createProgram = async (data) => {
 
 const updateProgram = async (id, data) => {
   const prog = await prisma.programDonasi.findUnique({ where: { id } });
-  if (!prog) { const e = new Error('Program donasi tidak ditemukan.'); e.statusCode = 404; throw e; }
+  if (!prog) { const e = new Error('Program infaq tidak ditemukan.'); e.statusCode = 404; throw e; }
   return prisma.programDonasi.update({
     where: { id },
     data: {
@@ -196,7 +196,7 @@ const updateProgram = async (id, data) => {
 
 const deleteProgram = async (id) => {
   const prog = await prisma.programDonasi.findUnique({ where: { id } });
-  if (!prog) { const e = new Error('Program donasi tidak ditemukan.'); e.statusCode = 404; throw e; }
+  if (!prog) { const e = new Error('Program infaq tidak ditemukan.'); e.statusCode = 404; throw e; }
   return prisma.programDonasi.delete({ where: { id } });
 };
 

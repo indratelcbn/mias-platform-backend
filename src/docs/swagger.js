@@ -1,4 +1,4 @@
-/**
+﻿/**
  * OpenAPI 3.0 specification for MIAS 2026 Backend API
  * Masjid Imam Asy Syafi'i Depok
  */
@@ -10,7 +10,7 @@ const swaggerDocument = {
     version: '1.0.0',
     description:
       "Dokumentasi lengkap REST API untuk website Masjid Imam Asy Syafi'i Depok (MIAS). " +
-      'Endpoint yang memerlukan autentikasi menggunakan **Bearer JWT Token** — login terlebih dahulu ' +
+      'Endpoint yang memerlukan autentikasi menggunakan **Bearer JWT Token** â€” login terlebih dahulu ' +
       'di `/api/auth/login` lalu masukkan token di tombol **Authorize**.',
     contact: {
       name: 'MIAS Dev Team',
@@ -31,7 +31,7 @@ const swaggerDocument = {
       },
     },
     schemas: {
-      // ── Generic ──────────────────────────────────────────────────────────────
+      // â”€â”€ Generic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       SuccessResponse: {
         type: 'object',
         properties: {
@@ -46,7 +46,7 @@ const swaggerDocument = {
           message: { type: 'string', example: 'Terjadi kesalahan.' },
         },
       },
-      // ── Auth ─────────────────────────────────────────────────────────────────
+      // â”€â”€ Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       LoginRequest: {
         type: 'object',
         required: ['username', 'password'],
@@ -70,7 +70,7 @@ const swaggerDocument = {
           },
         },
       },
-      // ── Kajian ───────────────────────────────────────────────────────────────
+      // â”€â”€ Kajian â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       Kajian: {
         type: 'object',
         properties: {
@@ -86,7 +86,7 @@ const swaggerDocument = {
           updatedAt: { type: 'string', format: 'date-time' },
         },
       },
-      // ── Artikel ──────────────────────────────────────────────────────────────
+      // â”€â”€ Artikel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       Artikel: {
         type: 'object',
         properties: {
@@ -100,7 +100,7 @@ const swaggerDocument = {
           updatedAt: { type: 'string', format: 'date-time' },
         },
       },
-      // ── Donasi ───────────────────────────────────────────────────────────────
+      // â”€â”€ Infaq â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       Donasi: {
         type: 'object',
         properties: {
@@ -136,7 +136,7 @@ const swaggerDocument = {
           deskripsi: { type: 'string' },
         },
       },
-      // ── Galeri ───────────────────────────────────────────────────────────────
+      // â”€â”€ Galeri â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       Galeri: {
         type: 'object',
         properties: {
@@ -150,7 +150,7 @@ const swaggerDocument = {
           createdAt: { type: 'string', format: 'date-time' },
         },
       },
-      // ── Streaming ────────────────────────────────────────────────────────────
+      // â”€â”€ Streaming â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       Streaming: {
         type: 'object',
         properties: {
@@ -161,7 +161,7 @@ const swaggerDocument = {
           createdAt: { type: 'string', format: 'date-time' },
         },
       },
-      // ── Sosial ───────────────────────────────────────────────────────────────
+      // â”€â”€ Sosial â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       SosialFoto: {
         type: 'object',
         properties: {
@@ -183,7 +183,7 @@ const swaggerDocument = {
           createdAt: { type: 'string', format: 'date-time' },
         },
       },
-      // ── Pendidikan ───────────────────────────────────────────────────────────
+      // â”€â”€ Pendidikan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       PendidikanFoto: {
         type: 'object',
         properties: {
@@ -208,7 +208,7 @@ const swaggerDocument = {
           jadwal: { type: 'string' },
         },
       },
-      // ── Usaha ────────────────────────────────────────────────────────────────
+      // â”€â”€ Usaha â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       Umroh: {
         type: 'object',
         properties: {
@@ -229,7 +229,7 @@ const swaggerDocument = {
           createdAt: { type: 'string', format: 'date-time' },
         },
       },
-      // ── Qurban ───────────────────────────────────────────────────────────────
+      // â”€â”€ Qurban â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       Qurban: {
         type: 'object',
         properties: {
@@ -240,7 +240,7 @@ const swaggerDocument = {
           createdAt: { type: 'string', format: 'date-time' },
         },
       },
-      // ── Profil ───────────────────────────────────────────────────────────────
+      // â”€â”€ Profil â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       Sejarah: {
         type: 'object',
         properties: {
@@ -276,7 +276,7 @@ const swaggerDocument = {
           bio: { type: 'string' },
         },
       },
-      // ── Setting ──────────────────────────────────────────────────────────────
+      // â”€â”€ Setting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       Setting: {
         type: 'object',
         properties: {
@@ -287,7 +287,7 @@ const swaggerDocument = {
           alamat: { type: 'string', nullable: true },
         },
       },
-      // ── Pesan ────────────────────────────────────────────────────────────────
+      // â”€â”€ Pesan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       Pesan: {
         type: 'object',
         properties: {
@@ -314,11 +314,11 @@ const swaggerDocument = {
       },
     },
   },
-  // ══════════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   //  PATHS
-  // ══════════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   paths: {
-    // ── Health ───────────────────────────────────────────────────────────────
+    // â”€â”€ Health â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/health': {
       get: {
         tags: ['System'],
@@ -336,7 +336,7 @@ const swaggerDocument = {
       },
     },
 
-    // ── AUTH ─────────────────────────────────────────────────────────────────
+    // â”€â”€ AUTH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/auth/login': {
       post: {
         tags: ['Auth'],
@@ -392,7 +392,7 @@ const swaggerDocument = {
       },
     },
 
-    // ── KAJIAN ───────────────────────────────────────────────────────────────
+    // â”€â”€ KAJIAN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/kajian': {
       get: {
         tags: ['Kajian'],
@@ -500,7 +500,7 @@ const swaggerDocument = {
       },
     },
 
-    // ── ARTIKEL ──────────────────────────────────────────────────────────────
+    // â”€â”€ ARTIKEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/artikel': {
       get: {
         tags: ['Artikel'],
@@ -594,15 +594,15 @@ const swaggerDocument = {
       },
     },
 
-    // ── DONASI ───────────────────────────────────────────────────────────────
+    // â”€â”€ INFAQ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/donasi/rekening': {
       get: {
-        tags: ['Donasi'],
-        summary: 'Daftar rekening donasi (public)',
+        tags: ['Infaq'],
+        summary: 'Daftar rekening infaq (public)',
         responses: { 200: { description: 'Daftar rekening', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Rekening' } } } } } },
       },
       post: {
-        tags: ['Donasi'],
+        tags: ['Infaq'],
         summary: 'Tambah rekening (admin)',
         security: [{ bearerAuth: [] }],
         requestBody: {
@@ -627,7 +627,7 @@ const swaggerDocument = {
     },
     '/api/donasi/rekening/{id}': {
       put: {
-        tags: ['Donasi'],
+        tags: ['Infaq'],
         summary: 'Update rekening (admin)',
         security: [{ bearerAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
@@ -649,7 +649,7 @@ const swaggerDocument = {
         responses: { 200: { description: 'Rekening diperbarui' } },
       },
       delete: {
-        tags: ['Donasi'],
+        tags: ['Infaq'],
         summary: 'Hapus rekening (admin)',
         security: [{ bearerAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
@@ -658,21 +658,21 @@ const swaggerDocument = {
     },
     '/api/donasi/program': {
       get: {
-        tags: ['Donasi'],
-        summary: 'Program donasi aktif (public)',
+        tags: ['Infaq'],
+        summary: 'Program infaq aktif (public)',
         responses: { 200: { description: 'Program aktif', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/ProgramDonasi' } } } } } },
       },
     },
     '/api/donasi/program/all': {
       get: {
-        tags: ['Donasi'],
-        summary: 'Semua program donasi (admin)',
+        tags: ['Infaq'],
+        summary: 'Semua program infaq (admin)',
         security: [{ bearerAuth: [] }],
-        responses: { 200: { description: 'Semua program donasi' } },
+        responses: { 200: { description: 'Semua program infaq' } },
       },
       post: {
-        tags: ['Donasi'],
-        summary: 'Tambah program donasi (admin)',
+        tags: ['Infaq'],
+        summary: 'Tambah program infaq (admin)',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -696,16 +696,16 @@ const swaggerDocument = {
     },
     '/api/donasi/program/{id}': {
       put: {
-        tags: ['Donasi'],
-        summary: 'Update program donasi (admin)',
+        tags: ['Infaq'],
+        summary: 'Update program infaq (admin)',
         security: [{ bearerAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         requestBody: { content: { 'application/json': { schema: { $ref: '#/components/schemas/ProgramDonasi' } } } },
         responses: { 200: { description: 'Program diperbarui' } },
       },
       delete: {
-        tags: ['Donasi'],
-        summary: 'Hapus program donasi (admin)',
+        tags: ['Infaq'],
+        summary: 'Hapus program infaq (admin)',
         security: [{ bearerAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         responses: { 200: { description: 'Program dihapus' } },
@@ -713,19 +713,19 @@ const swaggerDocument = {
     },
     '/api/donasi': {
       get: {
-        tags: ['Donasi'],
-        summary: 'Daftar semua donasi masuk (admin)',
+        tags: ['Infaq'],
+        summary: 'Daftar semua infaq masuk (admin)',
         security: [{ bearerAuth: [] }],
         parameters: [
           { name: 'page', in: 'query', schema: { type: 'integer' } },
           { name: 'limit', in: 'query', schema: { type: 'integer' } },
           { name: 'status', in: 'query', schema: { type: 'string', enum: ['PENDING', 'VERIFIED', 'REJECTED'] } },
         ],
-        responses: { 200: { description: 'Daftar donasi' } },
+        responses: { 200: { description: 'Daftar infaq' } },
       },
       post: {
-        tags: ['Donasi'],
-        summary: 'Kirim donasi baru (public)',
+        tags: ['Infaq'],
+        summary: 'Kirim infaq baru (public)',
         requestBody: {
           required: true,
           content: {
@@ -745,23 +745,23 @@ const swaggerDocument = {
           },
         },
         responses: {
-          201: { description: 'Donasi dikirim, menunggu verifikasi' },
+          201: { description: 'Infaq dikirim, menunggu verifikasi' },
           400: { description: 'Validasi gagal' },
         },
       },
     },
     '/api/donasi/summary': {
       get: {
-        tags: ['Donasi'],
-        summary: 'Ringkasan statistik donasi (admin)',
+        tags: ['Infaq'],
+        summary: 'Ringkasan statistik infaq (admin)',
         security: [{ bearerAuth: [] }],
-        responses: { 200: { description: 'Ringkasan donasi' } },
+        responses: { 200: { description: 'Ringkasan infaq' } },
       },
     },
     '/api/donasi/{id}/status': {
       put: {
-        tags: ['Donasi'],
-        summary: 'Update status donasi (admin)',
+        tags: ['Infaq'],
+        summary: 'Update status infaq (admin)',
         security: [{ bearerAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         requestBody: {
@@ -776,11 +776,11 @@ const swaggerDocument = {
             },
           },
         },
-        responses: { 200: { description: 'Status donasi diperbarui' } },
+        responses: { 200: { description: 'Status infaq diperbarui' } },
       },
     },
 
-    // ── GALERI ───────────────────────────────────────────────────────────────
+    // â”€â”€ GALERI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/galeri': {
       get: {
         tags: ['Galeri'],
@@ -793,7 +793,7 @@ const swaggerDocument = {
       },
       post: {
         tags: ['Galeri'],
-        summary: 'Upload foto galeri — bisa sekaligus banyak (admin)',
+        summary: 'Upload foto galeri â€” bisa sekaligus banyak (admin)',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -803,7 +803,7 @@ const swaggerDocument = {
                 type: 'object',
                 required: ['kategori', 'tahun'],
                 properties: {
-                  judul: { type: 'string', description: 'Opsional jika batch — judul dasar' },
+                  judul: { type: 'string', description: 'Opsional jika batch â€” judul dasar' },
                   kategori: { type: 'string', enum: ['RAMADHAN', 'SHOLAT_IED'] },
                   tahun: { type: 'integer', example: 2026 },
                   urutan: { type: 'integer', example: 1 },
@@ -871,7 +871,7 @@ const swaggerDocument = {
       },
     },
 
-    // ── STREAMING ────────────────────────────────────────────────────────────
+    // â”€â”€ STREAMING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/streaming/active': {
       get: {
         tags: ['Streaming'],
@@ -946,7 +946,7 @@ const swaggerDocument = {
       },
     },
 
-    // ── SOSIAL ───────────────────────────────────────────────────────────────
+    // â”€â”€ SOSIAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/sosial/admin/all': {
       get: {
         tags: ['Program Sosial'],
@@ -974,7 +974,7 @@ const swaggerDocument = {
     '/api/sosial': {
       post: {
         tags: ['Program Sosial'],
-        summary: 'Upload foto sosial — bisa sekaligus banyak (admin)',
+        summary: 'Upload foto sosial â€” bisa sekaligus banyak (admin)',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -1025,7 +1025,7 @@ const swaggerDocument = {
       },
     },
 
-    // ── PENDIDIKAN ────────────────────────────────────────────────────────────
+    // â”€â”€ PENDIDIKAN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/pendidikan/admin/all-info': {
       get: {
         tags: ['Pendidikan'],
@@ -1073,7 +1073,7 @@ const swaggerDocument = {
     '/api/pendidikan/foto': {
       post: {
         tags: ['Pendidikan'],
-        summary: 'Upload foto pendidikan — bisa sekaligus banyak (admin)',
+        summary: 'Upload foto pendidikan â€” bisa sekaligus banyak (admin)',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -1129,7 +1129,7 @@ const swaggerDocument = {
       },
     },
 
-    // ── USAHA ────────────────────────────────────────────────────────────────
+    // â”€â”€ USAHA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/usaha/umroh/admin': {
       get: {
         tags: ['Usaha'],
@@ -1146,7 +1146,7 @@ const swaggerDocument = {
       },
       post: {
         tags: ['Usaha'],
-        summary: 'Upload flyer umroh — bisa sekaligus banyak (admin)',
+        summary: 'Upload flyer umroh â€” bisa sekaligus banyak (admin)',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -1204,7 +1204,7 @@ const swaggerDocument = {
       },
       post: {
         tags: ['Usaha'],
-        summary: 'Tambah produk MIAS Mart — bisa sekaligus banyak foto (admin)',
+        summary: 'Tambah produk MIAS Mart â€” bisa sekaligus banyak foto (admin)',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -1258,7 +1258,7 @@ const swaggerDocument = {
       },
     },
 
-    // ── QURBAN ───────────────────────────────────────────────────────────────
+    // â”€â”€ QURBAN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/qurban': {
       get: {
         tags: ['Qurban'],
@@ -1270,7 +1270,7 @@ const swaggerDocument = {
       },
       post: {
         tags: ['Qurban'],
-        summary: 'Upload foto qurban — bisa sekaligus banyak (admin)',
+        summary: 'Upload foto qurban â€” bisa sekaligus banyak (admin)',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -1330,7 +1330,7 @@ const swaggerDocument = {
       },
     },
 
-    // ── PROFIL ───────────────────────────────────────────────────────────────
+    // â”€â”€ PROFIL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/profil/sejarah': {
       get: { tags: ['Profil'], summary: 'Sejarah masjid (public)', responses: { 200: { description: 'Konten sejarah', content: { 'application/json': { schema: { $ref: '#/components/schemas/Sejarah' } } } } } },
       put: {
@@ -1419,7 +1419,7 @@ const swaggerDocument = {
       },
     },
 
-    // ── SETTING ───────────────────────────────────────────────────────────────
+    // â”€â”€ SETTING â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/setting': {
       get: { tags: ['Setting'], summary: 'Baca pengaturan sosial media & info kontak (public)', responses: { 200: { description: 'Data setting', content: { 'application/json': { schema: { $ref: '#/components/schemas/Setting' } } } } } },
       put: {
@@ -1429,7 +1429,7 @@ const swaggerDocument = {
       },
     },
 
-    // ── PESAN ─────────────────────────────────────────────────────────────────
+    // â”€â”€ PESAN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/pesan': {
       get: {
         tags: ['Pesan'],
@@ -1499,7 +1499,7 @@ const swaggerDocument = {
       },
     },
 
-    // ── YOUTUBE ───────────────────────────────────────────────────────────────
+    // â”€â”€ YOUTUBE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     '/api/youtube/videos': {
       get: {
         tags: ['YouTube'],
@@ -1526,17 +1526,17 @@ const swaggerDocument = {
 
   tags: [
     { name: 'System', description: 'Health check & info server' },
-    { name: 'Auth', description: 'Autentikasi admin — login, profil, ganti password' },
+    { name: 'Auth', description: 'Autentikasi admin â€” login, profil, ganti password' },
     { name: 'Kajian', description: 'Jadwal kajian & pengajian' },
     { name: 'Artikel', description: 'Artikel berita & konten dakwah' },
-    { name: 'Donasi', description: 'Program donasi, rekening, dan manajemen donatur' },
+    { name: 'Infaq', description: 'Program infaq, rekening, dan manajemen donatur' },
     { name: 'Galeri', description: 'Foto galeri Ramadhan & Sholat Ied' },
     { name: 'Streaming', description: 'URL live streaming masjid' },
     { name: 'Program Sosial', description: 'Dokumentasi foto program sosial kemasyarakatan' },
     { name: 'Pendidikan', description: 'Program pendidikan masjid (Tahsin, Bahasa Arab, TPQ)' },
     { name: 'Qurban', description: 'Dokumentasi foto kegiatan Qurban' },
-    { name: 'Usaha', description: 'Usaha masjid — Umroh & MIAS Mart' },
-    { name: 'Profil', description: 'Profil masjid — sejarah, visi misi, fasilitas, struktur, pemateri' },
+    { name: 'Usaha', description: 'Usaha masjid â€” Umroh & MIAS Mart' },
+    { name: 'Profil', description: 'Profil masjid â€” sejarah, visi misi, fasilitas, struktur, pemateri' },
     { name: 'Setting', description: 'Pengaturan sosial media & info kontak masjid' },
     { name: 'Pesan', description: 'Pesan / pertanyaan dari pengunjung website' },
     { name: 'YouTube', description: 'Integrasi YouTube Data API v3' },

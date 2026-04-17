@@ -54,14 +54,14 @@ async function main() {
   await prisma.rolePermission.createMany({ data: permData });
   console.log('✅ Default role permissions dibuat');
 
-  // ─── Rekening Donasi ──────────────────────────────────────────────────────
+  // ─── Rekening Infaq ───────────────────────────────────────────────────────
   await prisma.rekening.createMany({
     data: [
       {
         namaBank: 'Bank Syariah Indonesia (BSI)',
         noRekening: '7012345678',
         atasNama: "DKM Masjid Imam Asy Syafi'i",
-        keterangan: 'Rekening utama donasi',
+        keterangan: 'Rekening utama infaq',
       },
       {
         namaBank: 'Bank Muamalat',

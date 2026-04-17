@@ -14,7 +14,7 @@ router.post(
   uploadBuktiTransfer.single('buktiTransfer'),
   [
     body('nama').notEmpty().withMessage('Nama donatur diperlukan.'),
-    body('jumlah').isNumeric().withMessage('Jumlah donasi harus berupa angka.').isFloat({ min: 1000 }).withMessage('Jumlah minimal Rp 1.000.'),
+    body('jumlah').isNumeric().withMessage('Jumlah infaq harus berupa angka.').isFloat({ min: 1000 }).withMessage('Jumlah minimal Rp 1.000.'),
   ],
   validate,
   donasiController.create
@@ -47,7 +47,7 @@ router.post(
 router.put('/rekening/:id', authMiddleware, adminOnly, uploadQris.single('qrisImage'), donasiController.updateRekening);
 router.delete('/rekening/:id', authMiddleware, adminOnly, donasiController.deleteRekening);
 
-// Program Donasi admin CRUD
+// Program Infaq admin CRUD
 router.get('/program/all', authMiddleware, adminOnly, donasiController.getAllProgram);
 router.post(
   '/program',

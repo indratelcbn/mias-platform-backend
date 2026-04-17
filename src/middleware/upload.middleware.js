@@ -88,7 +88,7 @@ const createUpload = (subfolder, { width, height, quality = 80, maxSizeMB = 10 }
 // Thumbnails (kajian, artikel): max 900px wide, 80 quality
 const uploadThumbnail = createUpload('thumbnails', { width: 900, quality: 80 });
 
-// Bukti transfer donasi: max 1200px – needs to remain legible
+// Bukti transfer infaq: max 1200px – needs to remain legible
 const uploadBuktiTransfer = createUpload('bukti_transfer', { width: 1200, quality: 82 });
 
 // QRIS: 600×600 box, higher quality so QR pattern stays scannable
