@@ -67,19 +67,26 @@ model Kajian {
 
 // ─── Artikel ──────────────────────────────────────────────────────────────────
 model Artikel {
-  id          String   @id @default(uuid())
-  judul       String
-  slug        String   @unique
-  konten      String
-  ringkasan   String?
-  thumbnail   String?
-  isPublished Boolean  @default(true) @map("is_published")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id              String    @id @default(uuid())
+  judul           String
+  slug            String    @unique
+  konten          String
+  ringkasan       String?
+  thumbnail       String?
+  kategori        String?
+  tanggalPublish  DateTime? @map("tanggal_publish")
+  isHighlight     Boolean   @default(false) @map("is_highlight")
+  metaTitle       String?   @map("meta_title")
+  metaDescription String?   @map("meta_description")
+  isPublished     Boolean   @default(true) @map("is_published")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   createdBy   String?  @map("created_by")
   creator     User?    @relation(fields: [createdBy], references: [id])
 
+  @@index([isPublished, tanggalPublish])
+  @@index([kategori])
   @@map("artikel")
 }
 
