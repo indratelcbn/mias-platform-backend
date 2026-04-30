@@ -395,6 +395,7 @@ model ProfilPemateri {
   foto       String?
   kitab      String?
   jenis      JenisPemateri @default(RUTIN)
+  hari       String?       // e.g. "Senin, Rabu" comma-separated (only for RUTIN)
   waktu      String?       // e.g. "Pekan 1, Pekan 3" comma-separated (only for RUTIN)
   jam        String?       // e.g. "Ba'da Maghrib - Selesai" (only for RUTIN)
   keterangan String?
@@ -435,6 +436,9 @@ model SiteSetting {
   telepon        String?
   email          String?
   jamOperasional String?  @map("jam_operasional")
+  popupImage     String?  @map("popup_image")
+  popupUrl       String?  @map("popup_url")
+  popupIsActive  Boolean  @default(false) @map("popup_is_active")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("site_settings")

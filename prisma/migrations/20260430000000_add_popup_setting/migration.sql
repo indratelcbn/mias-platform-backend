@@ -1,0 +1,4 @@
+ALTER TABLE "site_settings"
+  ADD COLUMN IF NOT EXISTS "popup_image" TEXT,
+  ADD COLUMN IF NOT EXISTS "popup_url" TEXT,
+  ADD COLUMN IF NOT EXISTS "popup_is_active" BOOLEAN NOT NULL DEFAULT false;

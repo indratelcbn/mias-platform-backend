@@ -11,7 +11,7 @@ async function getPublic(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    const { facebook, instagram, youtube, whatsapp, alamat, telepon, email, jamOperasional } = req.body;
+    const { facebook, instagram, youtube, whatsapp, alamat, telepon, email, jamOperasional, popupUrl, popupIsActive, deletePopupImage } = req.body;
     const data = {};
     if (facebook       !== undefined) data.facebook       = facebook       || null;
     if (instagram      !== undefined) data.instagram      = instagram      || null;
@@ -21,6 +21,10 @@ async function update(req, res, next) {
     if (telepon        !== undefined) data.telepon        = telepon        || null;
     if (email          !== undefined) data.email          = email          || null;
     if (jamOperasional !== undefined) data.jamOperasional = jamOperasional || null;
+    if (popupUrl       !== undefined) data.popupUrl       = popupUrl       || null;
+    if (popupIsActive  !== undefined) data.popupIsActive  = popupIsActive === true || popupIsActive === 'true';
+    if (deletePopupImage === true || deletePopupImage === 'true') data.popupImage = null;
+    if (req.file) data.popupImage = req.file.filename;
 
     const setting = await updateSetting(data);
     res.json({ success: true, data: setting });

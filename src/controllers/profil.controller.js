@@ -122,6 +122,7 @@ async function createPemateri(req, res, next) {
       nama:       req.body.nama,
       kitab:      req.body.kitab   || null,
       jenis:      req.body.jenis   || 'RUTIN',
+      hari:       req.body.hari    || null,
       waktu:      req.body.waktu   || null,
       jam:        req.body.jam     || null,
       keterangan: req.body.keterangan || null,
@@ -140,6 +141,7 @@ async function updatePemateri(req, res, next) {
     if (req.body.nama       !== undefined) data.nama       = req.body.nama;
     if (req.body.kitab      !== undefined) data.kitab      = req.body.kitab      || null;
     if (req.body.jenis      !== undefined) data.jenis      = req.body.jenis;
+    if (req.body.hari       !== undefined) data.hari       = req.body.hari       || null;
     if (req.body.waktu      !== undefined) data.waktu      = req.body.waktu      || null;
     if (req.body.jam        !== undefined) data.jam        = req.body.jam        || null;
     if (req.body.keterangan !== undefined) data.keterangan = req.body.keterangan || null;
