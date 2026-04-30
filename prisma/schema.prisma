@@ -217,17 +217,33 @@ enum HakMustahik {
   SEMUA
 }
 
+enum StatusMustahik {
+  JAMAAH
+  WARGA
+  WARGA_LUAR
+}
+
+enum PrioritasMustahik {
+  PRIORITAS_1
+  PRIORITAS_2
+  PRIORITAS_3
+}
+
 model Mustahik {
-  id        String           @id @default(uuid())
+  id        String             @id @default(uuid())
   nama      String
   alamat    String?
-  kabKota   String?          @map("kab_kota")
+  rt        String?
+  rw        String?
+  kabKota   String?            @map("kab_kota")
   provinsi  String?
   telepon   String?
   kategori  KategoriMustahik
-  berhak    HakMustahik      @default(SEMUA)
-  createdAt DateTime         @default(now()) @map("created_at")
-  updatedAt DateTime         @updatedAt @map("updated_at")
+  berhak    HakMustahik        @default(SEMUA)
+  status    StatusMustahik?
+  prioritas PrioritasMustahik?
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
 
   @@map("mustahik")
 }

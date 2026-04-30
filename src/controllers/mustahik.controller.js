@@ -2,6 +2,8 @@ const mustahikService = require('../services/mustahik.service');
 
 const VALID_KATEGORI = ['YATIM', 'JANDA', 'FAKIR', 'MISKIN', 'GHARIM', 'FII_SABILILLAH', 'MUSAFIR'];
 const VALID_BERHAK = ['PENERIMA_ZAKAT_MAL', 'PENERIMA_ZAKAT_FITRI', 'PENERIMA_BANTUAN_MIAS', 'SEMUA'];
+const VALID_STATUS = ['JAMAAH', 'WARGA', 'WARGA_LUAR'];
+const VALID_PRIORITAS = ['PRIORITAS_1', 'PRIORITAS_2', 'PRIORITAS_3'];
 
 const getAll = async (req, res, next) => {
   try {
@@ -44,11 +46,15 @@ const importData = async (req, res, next) => {
       return {
         nama: r.nama,
         alamat: r.alamat || null,
+        rt: r.rt || null,
+        rw: r.rw || null,
         kabKota: r.kabKota || null,
         provinsi: r.provinsi || null,
         telepon: r.telepon || null,
         kategori: r.kategori,
         berhak: VALID_BERHAK.includes(r.berhak) ? r.berhak : 'SEMUA',
+        status: VALID_STATUS.includes(r.status) ? r.status : null,
+        prioritas: VALID_PRIORITAS.includes(r.prioritas) ? r.prioritas : null,
       };
     });
     const result = await mustahikService.createMany(cleaned);
