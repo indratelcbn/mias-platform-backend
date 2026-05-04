@@ -19,7 +19,7 @@ const getAll = async ({ page = 1, limit = 10, ustadz, tanggalDari, tanggalSampai
       where,
       skip,
       take: Number(limit),
-      orderBy: { tanggal: 'asc' },
+      orderBy: { tanggal: 'desc' },
     }),
     prisma.kajian.count({ where }),
   ]);
