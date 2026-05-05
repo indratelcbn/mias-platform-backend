@@ -24,7 +24,7 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-const VALID_ROLES = ['ADMIN', 'SUPERADMIN', 'SOSIAL', 'DAKWAH', 'PENDIDIKAN', 'USAHA'];
+const VALID_ROLES = ['ADMIN', 'SUPERADMIN', 'SOSIAL', 'DAKWAH', 'PENDIDIKAN', 'USAHA', 'KEUANGAN'];
 
 const adminOnly = (req, res, next) => {
   if (!req.user || !VALID_ROLES.includes(req.user.role)) {

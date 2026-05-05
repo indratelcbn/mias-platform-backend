@@ -33,7 +33,7 @@ async function main() {
     'admin-dashboard', 'admin-profil', 'admin-kajian', 'admin-streaming',
     'admin-galeri', 'admin-sosial', 'admin-mustahik', 'admin-pendidikan',
     'admin-usaha', 'admin-artikel', 'admin-donasi', 'admin-pesan',
-    'admin-setting', 'admin-users', 'admin-qurban',
+    'admin-setting', 'admin-users', 'admin-qurban', 'admin-finance',
   ];
 
   const roleMenuMap = {
@@ -43,6 +43,7 @@ async function main() {
     DAKWAH: ['admin-dashboard', 'admin-kajian', 'admin-streaming', 'admin-galeri', 'admin-artikel', 'admin-qurban'],
     PENDIDIKAN: ['admin-dashboard', 'admin-pendidikan'],
     USAHA: ['admin-dashboard', 'admin-usaha'],
+    KEUANGAN: ['admin-dashboard', 'admin-finance', 'admin-donasi'],
   };
 
   const permData = [];
