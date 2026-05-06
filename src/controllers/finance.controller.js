@@ -2,6 +2,7 @@ const financeService = require('../services/finance.service');
 const financeProgramService = require('../services/finance-program.service');
 const financeBankService = require('../services/finance-bank.service');
 const financeReconciliationService = require('../services/finance-reconciliation.service');
+const financeExportService = require('../services/finance-export.service');
 const path = require('path');
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -154,6 +155,32 @@ const getMonthlyReport = async (req, res, next) => {
   try {
     const data = await financeService.getMonthlyReport(req.query);
     res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const exportMonthlyReportExcel = async (req, res, next) => {
+  try {
+    const report = await financeService.getMonthlyReport(req.query);
+    const buffer = await financeExportService.generateMonthlyReportExcel(report);
+    const filename = `Laporan-Keuangan-${report.year}-${String(report.month).padStart(2, '0')}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(Buffer.from(buffer));
+  } catch (err) {
+    next(err);
+  }
+};
+
+const exportMonthlyReportPDF = async (req, res, next) => {
+  try {
+    const report = await financeService.getMonthlyReport(req.query);
+    const buffer = await financeExportService.generateMonthlyReportPDF(report);
+    const filename = `Laporan-Keuangan-${report.year}-${String(report.month).padStart(2, '0')}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
   } catch (err) {
     next(err);
   }
@@ -372,6 +399,8 @@ module.exports = {
   getDashboardSummary,
   getFundTracking,
   getMonthlyReport,
+  exportMonthlyReportExcel,
+  exportMonthlyReportPDF,
 
   // Programs
   getAllPrograms,

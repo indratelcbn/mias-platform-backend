@@ -10,6 +10,8 @@ const VALID_BERHAK = ['PENERIMA_ZAKAT_MAL', 'PENERIMA_ZAKAT_FITRI', 'PENERIMA_BA
 // All routes are admin-only
 router.get('/', authMiddleware, adminOnly, mustahikController.getAll);
 router.get('/export', authMiddleware, adminOnly, mustahikController.exportData);
+router.get('/export/excel', authMiddleware, adminOnly, mustahikController.exportExcel);
+router.get('/export/pdf', authMiddleware, adminOnly, mustahikController.exportPDF);
 
 router.post(
   '/',

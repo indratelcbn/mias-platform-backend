@@ -158,6 +158,12 @@ async function deletePemateri(req, res, next) {
   catch (err) { next(err); }
 }
 
+// ─── Hero Stats (public) ──────────────────────────────────────────────────────
+async function getHeroStats(req, res, next) {
+  try { res.json({ success: true, data: await svc.getHeroStats() }); }
+  catch (err) { next(err); }
+}
+
 module.exports = {
   getSejarah, updateSejarah,
   getVisiMisi, updateVisiMisi,
@@ -165,4 +171,5 @@ module.exports = {
   addFasilitasFoto, deleteFasilitasFoto,
   getStruktur, updateStruktur,
   getPemateriPublic, getPemateriAdmin, createPemateri, updatePemateri, deletePemateri,
+  getHeroStats,
 };

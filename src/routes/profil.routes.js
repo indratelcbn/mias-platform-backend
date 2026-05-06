@@ -33,4 +33,7 @@ router.post('/pemateri',         authMiddleware, uploadProfilFoto.single('foto')
 router.put('/pemateri/:id',      authMiddleware, uploadProfilFoto.single('foto'), ctrl.updatePemateri);
 router.delete('/pemateri/:id',   authMiddleware, ctrl.deletePemateri);
 
+// ─── Hero Stats (public) ──────────────────────────────────────────────────────
+router.get('/hero-stats',        ctrl.getHeroStats);
+
 module.exports = router;

@@ -149,6 +149,46 @@ async function deletePemateri(id) {
   return prisma.profilPemateri.delete({ where: { id } });
 }
 
+// ─── Hero Stats (public) ──────────────────────────────────────────────────────
+async function getHeroStats() {
+  const safe = (p, fb) => p.catch(() => fb);
+
+  const [pemateriList, programInfaq, programWakaf] = await Promise.all([
+    safe(
+      prisma.profilPemateri.findMany({
+        where: { isActive: true },
+        select: { jenis: true, hari: true },
+      }),
+      []
+    ),
+    safe(prisma.programDonasi.count({ where: { isActive: true } }), 0),
+    safe(prisma.programWakaf.count({ where: { isActive: true } }), 0),
+  ]);
+
+  // Total Kajian = jumlah (pemateri x hari) untuk pemateri RUTIN.
+  // Pemateri TEMATIK dihitung 1 kajian/orang (tidak punya hari rutin).
+  let totalKajian = 0;
+  for (const p of pemateriList) {
+    if (p.jenis === 'RUTIN') {
+      const hari = (p.hari || '')
+        .split(',')
+        .map((h) => h.trim())
+        .filter(Boolean);
+      totalKajian += hari.length || 1;
+    } else {
+      totalKajian += 1;
+    }
+  }
+
+  return {
+    totalKajian,
+    totalPemateri: pemateriList.length,
+    totalProgram: (programInfaq || 0) + (programWakaf || 0),
+    programInfaq: programInfaq || 0,
+    programWakaf: programWakaf || 0,
+  };
+}
+
 module.exports = {
   getSejarah, updateSejarah,
   getVisiMisi, updateVisiMisi,
@@ -156,4 +196,5 @@ module.exports = {
   addFasilitasFoto, deleteFasilitasFoto,
   getStruktur, updateStruktur,
   getAllPemateri, getPemateriById, createPemateri, updatePemateri, deletePemateri,
+  getHeroStats,
 };

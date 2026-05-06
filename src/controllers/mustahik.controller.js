@@ -1,4 +1,5 @@
 const mustahikService = require('../services/mustahik.service');
+const mustahikExportService = require('../services/mustahik-export.service');
 
 const VALID_KATEGORI = ['YATIM', 'JANDA', 'FAKIR', 'MISKIN', 'GHARIM', 'FII_SABILILLAH', 'MUSAFIR'];
 const VALID_BERHAK = ['PENERIMA_ZAKAT_MAL', 'PENERIMA_ZAKAT_FITRI', 'PENERIMA_BANTUAN_MIAS', 'SEMUA'];
@@ -70,4 +71,26 @@ const exportData = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, create, update, remove, importData, exportData };
+const exportExcel = async (req, res, next) => {
+  try {
+    const data = await mustahikService.exportAll(req.query);
+    const buffer = await mustahikExportService.generateMustahikExcel(data);
+    const filename = `Data-Mustahik-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(Buffer.from(buffer));
+  } catch (err) { next(err); }
+};
+
+const exportPDF = async (req, res, next) => {
+  try {
+    const data = await mustahikService.exportAll(req.query);
+    const buffer = await mustahikExportService.generateMustahikPDF(data);
+    const filename = `Data-Mustahik-${new Date().toISOString().slice(0, 10)}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (err) { next(err); }
+};
+
+module.exports = { getAll, create, update, remove, importData, exportData, exportExcel, exportPDF };
