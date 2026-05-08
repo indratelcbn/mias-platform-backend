@@ -52,11 +52,11 @@ const getAllPrograms = async () => {
  * Returns program info if found
  */
 const findProgramByUniqueCode = async (uniqueCode) => {
-  if (!uniqueCode || uniqueCode < 1 || uniqueCode > 999) {
+  if (uniqueCode === null || uniqueCode === undefined || uniqueCode < 0 || uniqueCode > 999) {
     return null;
   }
 
-  // Convert to 3 digit string: 1 -> "001", 42 -> "042", 123 -> "123"
+  // Convert to 3 digit string: 0 -> "000", 1 -> "001", 42 -> "042", 123 -> "123"
   const codeStr = String(uniqueCode).padStart(3, '0');
 
   // Search in program_donasi
@@ -107,20 +107,21 @@ const parseAmountWithUniqueCode = async (amount) => {
   // Extract last 3 digits
   const lastThreeDigits = parseInt(amountStr.slice(-3));
 
-  // Check if it's a valid kode unik (001-999)
-  if (lastThreeDigits >= 1 && lastThreeDigits <= 999) {
+  // Check if it has a 3-digit suffix that may correspond to a kode unik
+  if (lastThreeDigits >= 0 && lastThreeDigits <= 999) {
     const uniqueCode = lastThreeDigits;
     const actualAmount = amountNum - uniqueCode;
 
     // Find program by kode
     const program = await findProgramByUniqueCode(uniqueCode);
+    const hasUniqueCode = program !== null;
 
     return {
       amount: amountNum,
       uniqueCode,
       actualAmount,
       program,
-      hasUniqueCode: true,
+      hasUniqueCode,
     };
   }
 

@@ -9,16 +9,44 @@ const financeProgramService = require('./finance-program.service');
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Parse CSV file to array of objects
- * Supports common bank CSV formats
+ * Detect CSV delimiter by inspecting the first non-empty line.
+ * Supports comma, semicolon, and tab. Defaults to comma.
+ */
+const detectDelimiter = (sampleText) => {
+  const firstLine = (sampleText.split(/\r?\n/).find((l) => l.trim().length > 0)) || '';
+  const counts = {
+    '\t': (firstLine.match(/\t/g) || []).length,
+    ';': (firstLine.match(/;/g) || []).length,
+    ',': (firstLine.match(/,/g) || []).length,
+  };
+  const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return best && best[1] > 0 ? best[0] : ',';
+};
+
+/**
+ * Parse CSV file to array of objects.
+ * Auto-detects delimiter (comma / semicolon / tab) unless explicitly provided.
  */
 const parseCSV = async (filePath, options = {}) => {
   return new Promise((resolve, reject) => {
+    const csvOptions = { ...options };
+    if (!csvOptions.separator) {
+      try {
+        const fd = fs.openSync(filePath, 'r');
+        const buf = Buffer.alloc(4096);
+        const bytes = fs.readSync(fd, buf, 0, 4096, 0);
+        fs.closeSync(fd);
+        csvOptions.separator = detectDelimiter(buf.slice(0, bytes).toString('utf8'));
+      } catch (_e) {
+        csvOptions.separator = ',';
+      }
+    }
+
     const results = [];
     const stream = fs.createReadStream(filePath);
 
     stream
-      .pipe(csv(options))
+      .pipe(csv(csvOptions))
       .on('data', (data) => results.push(data))
       .on('end', () => resolve(results))
       .on('error', (error) => reject(error));
@@ -26,15 +54,22 @@ const parseCSV = async (filePath, options = {}) => {
 };
 
 /**
- * Parse CSV from buffer (for direct upload)
+ * Parse CSV from buffer (for direct upload).
+ * Auto-detects delimiter unless explicitly provided.
  */
 const parseCSVFromBuffer = async (buffer, options = {}) => {
   return new Promise((resolve, reject) => {
+    const text = buffer.toString();
+    const csvOptions = { ...options };
+    if (!csvOptions.separator) {
+      csvOptions.separator = detectDelimiter(text);
+    }
+
     const results = [];
-    const stream = Readable.from(buffer.toString());
+    const stream = Readable.from(text);
 
     stream
-      .pipe(csv(options))
+      .pipe(csv(csvOptions))
       .on('data', (data) => results.push(data))
       .on('end', () => resolve(results))
       .on('error', (error) => reject(error));
@@ -114,6 +149,44 @@ const normalizeBankData = (row, bankFormat = 'STANDARD') => {
         balance: parseAmount(row['SALDO']),
       };
     }
+    // BSI Format (Bank Syariah Indonesia)
+    // Header (TAB-separated, ada kolom kosong ekstra):
+    //   No, Waktu Transaksi, No.Referensi, , Nama Pengirim, , Bank Pengirim,
+    //   Nama Penerima, Bank Penerima, Deskripsi, Debet, Kredit, Saldo Riil, Kode
+    // "Waktu Transaksi" sering multi-baris dalam quotes: "01-12-2025\n00.15"
+    else if (bankFormat === 'BSI') {
+      // Lookup case-insensitive yang mengabaikan spasi & titik
+      const norm = (s) => String(s || '').toLowerCase().replace(/[\s.]+/g, '');
+      const lookup = {};
+      for (const k of Object.keys(row)) {
+        if (k) lookup[norm(k)] = row[k];
+      }
+      const get = (...names) => {
+        for (const n of names) {
+          const v = lookup[norm(n)];
+          if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+        }
+        return '';
+      };
+
+      // Tanggal bisa multi-baris: "01-12-2025\n00.15" → ganti newline jadi spasi
+      const rawDate = String(get('Waktu Transaksi', 'Tanggal') || '')
+        .replace(/[\r\n]+/g, ' ')
+        .trim();
+
+      normalized = {
+        transactionId: String(
+          get('No.Referensi', 'No Referensi', 'Nomor Referensi', 'Reference')
+        ).trim(),
+        transactionDate: parseDate(rawDate),
+        description: String(get('Deskripsi', 'Keterangan', 'Description') || '')
+          .replace(/[\r\n]+/g, ' ')
+          .trim(),
+        debit: parseAmount(get('Debet', 'Debit')),
+        credit: parseAmount(get('Kredit', 'Credit')),
+        balance: parseAmount(get('Saldo Riil', 'Saldo', 'Balance')),
+      };
+    }
 
     // Validate required fields
     if (!normalized.transactionId || !normalized.transactionDate || normalized.balance === null) {
@@ -129,22 +202,42 @@ const normalizeBankData = (row, bankFormat = 'STANDARD') => {
 
 /**
  * Parse date from various formats
+ * Supports: ISO, DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY,
+ *           and combined date+time like "DD-MM-YYYY HH.MM" / "DD-MM-YYYY HH:MM:SS"
  */
 const parseDate = (dateStr) => {
   if (!dateStr) return null;
 
-  // Try ISO format
-  let date = new Date(dateStr);
+  const raw = String(dateStr).trim();
+
+  // Try ISO format directly
+  let date = new Date(raw);
   if (!isNaN(date.getTime())) return date;
 
-  // Try DD/MM/YYYY format
-  const parts = dateStr.split(/[/\-\.]/);
+  // Split off optional time portion (separated by space or 'T')
+  const [datePart, timePart] = raw.split(/[\sT]+/);
+
+  // Try DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+  const parts = datePart.split(/[/\-.]/);
   if (parts.length === 3) {
-    // Assume DD/MM/YYYY or DD-MM-YYYY
-    const day = parseInt(parts[0]);
-    const month = parseInt(parts[1]) - 1;
-    const year = parseInt(parts[2]);
-    date = new Date(year, month, day);
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+
+    let hour = 0;
+    let minute = 0;
+    let second = 0;
+    if (timePart) {
+      // Time can use ':' or '.' as separator (BSI uses '.')
+      const timeParts = timePart.split(/[:.]/);
+      if (timeParts.length >= 2) {
+        hour = parseInt(timeParts[0], 10) || 0;
+        minute = parseInt(timeParts[1], 10) || 0;
+        second = parseInt(timeParts[2], 10) || 0;
+      }
+    }
+
+    date = new Date(year, month, day, hour, minute, second);
     if (!isNaN(date.getTime())) return date;
   }
 

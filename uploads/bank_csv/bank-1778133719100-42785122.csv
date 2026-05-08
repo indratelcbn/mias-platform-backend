@@ -1,0 +1,16 @@
+﻿"Tanggal","Akun","Tipe Akun","Deskripsi","Tipe","Program","Kategori","Jumlah"
+"5/5/2026","Cash","CASH","","Keluar","[002] Depot air","","100000"
+"5/5/2026","Cash","CASH","","Keluar","[101] Wakaf Tanah","","100000"
+"5/5/2026","Cash","CASH","test
+","Masuk","[000] Kegiatan Operasional","","1000000"
+"5/5/2026","Cash","CASH","","Masuk","[070] Pendidikan","","100000"
+"5/5/2026","Cash","CASH","","Masuk","[200] Kegiatan Usaha","","200000"
+"5/5/2026","Cash","CASH","","Masuk","[046] Multimedia","","5000000"
+
+"RINGKASAN"
+"Periode","Mei 2026"
+"Saldo Awal","0"
+"Total Pemasukan","6300000"
+"Total Pengeluaran","200000"
+"Saldo Akhir","6100000"
+"Net Cashflow","6100000"

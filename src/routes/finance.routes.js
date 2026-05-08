@@ -139,7 +139,7 @@ router.post(
   uploadCSV.single('file'),
   [
     body('accountId').notEmpty().withMessage('Akun bank diperlukan.'),
-    body('bankFormat').optional().isIn(['STANDARD', 'BCA', 'MANDIRI', 'BNI', 'BRI']).withMessage('Format bank tidak valid.'),
+    body('bankFormat').optional().isIn(['STANDARD', 'BSI', 'BCA', 'MANDIRI', 'BNI', 'BRI']).withMessage('Format bank tidak valid.'),
   ],
   validate,
   financeController.importBankCSV
@@ -157,5 +157,6 @@ router.post('/reconciliation/auto-match', authMiddleware, adminOnly, financeCont
 router.post('/reconciliation/manual-match', authMiddleware, adminOnly, financeController.manualMatch);
 router.post('/reconciliation/mark-unmatched', authMiddleware, adminOnly, financeController.markAsUnmatched);
 router.put('/reconciliation/:id/unmatch', authMiddleware, adminOnly, financeController.unmatch);
+router.put('/reconciliation/:id/assign-program', authMiddleware, adminOnly, financeController.assignProgram);
 
 module.exports = router;

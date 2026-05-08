@@ -15,11 +15,14 @@ const financeProgramService = require('./finance-program.service');
 const autoMatch = async (accountId, options = {}) => {
   const { dateTolerance = 1, autoCreate = false } = options; // dateTolerance in days
 
-  // Get unmatched bank transactions (credit only = income)
+  // Get unmatched bank transactions (BOTH credit = IN AND debit = OUT)
   const bankTransactions = await prisma.financeBankImportDetail.findMany({
     where: {
       accountId,
-      credit: { not: null },
+      OR: [
+        { credit: { not: null } },
+        { debit: { not: null } },
+      ],
       reconciliations: {
         none: {
           status: 'MATCHED',
@@ -29,11 +32,10 @@ const autoMatch = async (accountId, options = {}) => {
     orderBy: { transactionDate: 'desc' },
   });
 
-  // Get unmatched internal transactions
+  // Get unmatched internal transactions (BOTH IN and OUT)
   const internalTransactions = await prisma.financeTransaction.findMany({
     where: {
       accountId,
-      type: 'IN',
       reconciliations: {
         none: {
           status: 'MATCHED',
@@ -47,11 +49,18 @@ const autoMatch = async (accountId, options = {}) => {
   const unmatched = [];
 
   for (const bankTx of bankTransactions) {
-    const bankAmount = Number(bankTx.credit);
+    // Determine direction & amount: credit = IN (pemasukan), debit = OUT (pengeluaran)
+    const creditAmt = bankTx.credit != null ? Number(bankTx.credit) : 0;
+    const debitAmt = bankTx.debit != null ? Number(bankTx.debit) : 0;
+    const isCredit = creditAmt > 0;
+    const bankAmount = isCredit ? creditAmt : debitAmt;
+    const bankType = isCredit ? 'IN' : 'OUT';
     const bankDate = new Date(bankTx.transactionDate);
 
-    // Find matching internal transaction
+    // Find matching internal transaction with matching direction
     const match = internalTransactions.find((internalTx) => {
+      if (internalTx.type !== bankType) return false;
+
       const internalAmount = Number(internalTx.amount);
       const internalDate = new Date(internalTx.transactionDate);
 
@@ -62,7 +71,7 @@ const autoMatch = async (accountId, options = {}) => {
       // Check amount (exact match or with unique code)
       if (internalAmount === bankAmount) return true;
 
-      // Check with unique code
+      // Check with unique code (only relevant for IN with unique-code flow)
       if (internalTx.uniqueCode && internalTx.actualAmount) {
         return Number(internalTx.actualAmount) === bankAmount;
       }
@@ -107,16 +116,20 @@ const autoMatch = async (accountId, options = {}) => {
   if (autoCreate && unmatched.length > 0) {
     createdTransactions = await Promise.all(
       unmatched.map(async (bankTx) => {
-        const amount = Number(bankTx.credit);
+        const creditAmt = bankTx.credit != null ? Number(bankTx.credit) : 0;
+        const debitAmt = bankTx.debit != null ? Number(bankTx.debit) : 0;
+        const isCredit = creditAmt > 0;
+        const amount = isCredit ? creditAmt : debitAmt;
+        const type = isCredit ? 'IN' : 'OUT';
 
-        // Try to parse unique code and map to program
+        // Parse unique code (3-digit suffix) and map to program for both IN and OUT
         const parsed = await financeProgramService.parseAmountWithUniqueCode(amount);
 
         const transaction = await prisma.financeTransaction.create({
           data: {
             accountId,
             transactionDate: bankTx.transactionDate,
-            type: 'IN',
+            type,
             amount,
             uniqueCode: parsed.uniqueCode,
             actualAmount: parsed.actualAmount,
@@ -343,8 +356,29 @@ const getAllReconciliations = async ({
     prisma.financeReconciliation.count({ where }),
   ]);
 
+  // Resolve matchedBy UUIDs to user display names (matchedBy can be 'AUTO', 'MANUAL', or a userId)
+  const userIds = [
+    ...new Set(
+      data
+        .map((r) => r.matchedBy)
+        .filter((v) => v && v !== 'AUTO' && v !== 'MANUAL')
+    ),
+  ];
+  let userMap = {};
+  if (userIds.length > 0) {
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, nama: true, username: true },
+    });
+    userMap = Object.fromEntries(users.map((u) => [u.id, u.nama || u.username]));
+  }
+  const dataWithUser = data.map((r) => ({
+    ...r,
+    matchedByName: r.matchedBy && userMap[r.matchedBy] ? userMap[r.matchedBy] : null,
+  }));
+
   return {
-    data,
+    data: dataWithUser,
     meta: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) },
   };
 };
@@ -392,11 +426,116 @@ const getSuggestions = async (bankImportDetailId) => {
   return suggestions;
 };
 
+/**
+ * Assign / change program for a reconciliation row (UNMATCHED or PENDING).
+ * If recon has no internal transaction yet, create one from the bank detail.
+ * Always sets status to MATCHED on success.
+ */
+const assignProgram = async (reconciliationId, payload = {}, userId = null) => {
+  const { programType, programId, description, notes } = payload;
+
+  const recon = await prisma.financeReconciliation.findUnique({
+    where: { id: reconciliationId },
+    include: { bankImportDetail: true, transaction: true },
+  });
+
+  if (!recon) {
+    const err = new Error('Rekonsiliasi tidak ditemukan.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  // Resolve program name
+  let programName = null;
+  if (programType && programId) {
+    if (programType === 'INFAQ') {
+      const p = await prisma.programDonasi.findUnique({ where: { id: programId } });
+      if (!p) { const e = new Error('Program Infaq tidak ditemukan.'); e.statusCode = 404; throw e; }
+      programName = p.kode ? `[${p.kode}] ${p.judul}` : p.judul;
+    } else if (programType === 'WAKAF') {
+      const p = await prisma.programWakaf.findUnique({ where: { id: programId } });
+      if (!p) { const e = new Error('Program Wakaf tidak ditemukan.'); e.statusCode = 404; throw e; }
+      programName = p.kode ? `[${p.kode}] ${p.kegiatan}` : p.kegiatan;
+    } else {
+      const e = new Error('programType tidak valid (INFAQ atau WAKAF).');
+      e.statusCode = 400;
+      throw e;
+    }
+  }
+
+  // Case A: recon already has internal transaction → update its program fields
+  if (recon.transactionId) {
+    await prisma.financeTransaction.update({
+      where: { id: recon.transactionId },
+      data: {
+        programType: programType || null,
+        programId: programId || null,
+        programName,
+        description: description !== undefined ? description : undefined,
+        notes: notes !== undefined ? notes : undefined,
+      },
+    });
+
+    return prisma.financeReconciliation.update({
+      where: { id: reconciliationId },
+      data: {
+        status: 'MATCHED',
+        matchedBy: userId || 'MANUAL',
+        matchedAt: new Date(),
+        notes: 'Program updated manually',
+      },
+      include: { transaction: true, bankImportDetail: true },
+    });
+  }
+
+  // Case B: no internal transaction yet → must have a bank detail to create from
+  if (!recon.bankImportDetail) {
+    const e = new Error('Tidak ada data bank pada rekonsiliasi ini.');
+    e.statusCode = 400;
+    throw e;
+  }
+
+  const bankTx = recon.bankImportDetail;
+  const creditAmt = bankTx.credit != null ? Number(bankTx.credit) : 0;
+  const debitAmt = bankTx.debit != null ? Number(bankTx.debit) : 0;
+  const isCredit = creditAmt > 0;
+  const amount = isCredit ? creditAmt : debitAmt;
+  const type = isCredit ? 'IN' : 'OUT';
+
+  const transaction = await prisma.financeTransaction.create({
+    data: {
+      accountId: bankTx.accountId,
+      transactionDate: bankTx.transactionDate,
+      type,
+      amount,
+      programType: programType || null,
+      programId: programId || null,
+      programName,
+      description: description || bankTx.description || null,
+      notes: notes || 'Manually assigned program from reconciliation',
+      createdBy: userId ? String(userId) : 'MANUAL',
+    },
+  });
+
+  return prisma.financeReconciliation.update({
+    where: { id: reconciliationId },
+    data: {
+      transactionId: transaction.id,
+      status: 'MATCHED',
+      matchedBy: userId || 'MANUAL',
+      matchedAt: new Date(),
+      notes: 'Program assigned manually & transaction created',
+    },
+    include: { transaction: true, bankImportDetail: true },
+  });
+};
+
 module.exports = {
   autoMatch,
   manualMatch,
   unmatch,
   markAsUnmatched,
+  assignProgram,
   getSummary,
   getAllReconciliations,
   getSuggestions,

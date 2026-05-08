@@ -158,7 +158,7 @@ const getAllProgram = async () => {
 
 const getActiveProgram = async () => {
   return prisma.programDonasi.findMany({
-    where: { isActive: true },
+    where: { isActive: true, tampilWebsite: true },
     orderBy: [{ urutan: 'asc' }, { createdAt: 'desc' }],
   });
 };
@@ -173,6 +173,7 @@ const createProgram = async (data) => {
       target: data.target ? parseFloat(data.target) : 0,
       terkumpul: data.terkumpul ? parseFloat(data.terkumpul) : 0,
       isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+      tampilWebsite: data.tampilWebsite !== undefined ? Boolean(data.tampilWebsite) : true,
       urutan: parseInt(data.urutan || 0),
     },
   });
@@ -191,6 +192,7 @@ const updateProgram = async (id, data) => {
       target: data.target !== undefined ? parseFloat(data.target) : undefined,
       terkumpul: data.terkumpul !== undefined ? parseFloat(data.terkumpul) : undefined,
       isActive: data.isActive !== undefined ? Boolean(data.isActive) : undefined,
+      tampilWebsite: data.tampilWebsite !== undefined ? Boolean(data.tampilWebsite) : undefined,
       urutan: data.urutan !== undefined ? parseInt(data.urutan) : undefined,
     },
   });
@@ -209,7 +211,7 @@ const getAllWakaf = async () => {
 
 const getActiveWakaf = async () => {
   return prisma.programWakaf.findMany({
-    where: { isActive: true },
+    where: { isActive: true, tampilWebsite: true },
     orderBy: [{ urutan: 'asc' }, { createdAt: 'desc' }],
   });
 };
@@ -223,6 +225,7 @@ const createWakaf = async (data) => {
       divisi: data.divisi || null,
       target: data.target ? parseFloat(data.target) : 0,
       isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
+      tampilWebsite: data.tampilWebsite !== undefined ? Boolean(data.tampilWebsite) : true,
       urutan: parseInt(data.urutan || 0),
     },
   });
@@ -240,6 +243,7 @@ const updateWakaf = async (id, data) => {
       divisi: data.divisi !== undefined ? (data.divisi || null) : undefined,
       target: data.target !== undefined ? (data.target ? parseFloat(data.target) : 0) : undefined,
       isActive: data.isActive !== undefined ? Boolean(data.isActive) : undefined,
+      tampilWebsite: data.tampilWebsite !== undefined ? Boolean(data.tampilWebsite) : undefined,
       urutan: data.urutan !== undefined ? parseInt(data.urutan) : undefined,
     },
   });

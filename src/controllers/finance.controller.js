@@ -378,6 +378,20 @@ const getSuggestions = async (req, res, next) => {
   }
 };
 
+const assignProgram = async (req, res, next) => {
+  try {
+    const userId = req.user?.id || null;
+    const data = await financeReconciliationService.assignProgram(
+      req.params.id,
+      req.body || {},
+      userId
+    );
+    res.json({ success: true, message: 'Program berhasil diatur.', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   // Accounts
   getAllAccounts,
@@ -420,6 +434,7 @@ module.exports = {
   manualMatch,
   unmatch,
   markAsUnmatched,
+  assignProgram,
   getReconciliationSummary,
   getAllReconciliations,
   getSuggestions,
