@@ -287,6 +287,16 @@ const deleteBankImport = async (req, res, next) => {
   }
 };
 
+const confirmBankImport = async (req, res, next) => {
+  try {
+    const userId = req.user?.id || null;
+    const data = await financeBankService.confirmBankImport(req.params.id, userId);
+    res.json({ success: true, message: 'Import berhasil dikonfirmasi dan transaksi dibuat.', data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const getUnmatchedBankTransactions = async (req, res, next) => {
   try {
     const { accountId } = req.query;
@@ -427,6 +437,7 @@ module.exports = {
   getAllBankImports,
   getBankImportDetails,
   deleteBankImport,
+  confirmBankImport,
   getUnmatchedBankTransactions,
 
   // Reconciliation

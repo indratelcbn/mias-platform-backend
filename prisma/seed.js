@@ -33,7 +33,7 @@ async function main() {
     'admin-dashboard', 'admin-profil', 'admin-kajian', 'admin-streaming',
     'admin-galeri', 'admin-sosial', 'admin-mustahik', 'admin-pendidikan',
     'admin-usaha', 'admin-artikel', 'admin-donasi', 'admin-pesan',
-    'admin-setting', 'admin-users', 'admin-qurban', 'admin-finance',
+    'admin-setting', 'admin-users', 'admin-qurban', 'admin-finance', 'admin-divisi',
   ];
 
   const roleMenuMap = {
@@ -43,7 +43,7 @@ async function main() {
     DAKWAH: ['admin-dashboard', 'admin-kajian', 'admin-streaming', 'admin-galeri', 'admin-artikel', 'admin-qurban'],
     PENDIDIKAN: ['admin-dashboard', 'admin-pendidikan'],
     USAHA: ['admin-dashboard', 'admin-usaha'],
-    KEUANGAN: ['admin-dashboard', 'admin-finance', 'admin-donasi'],
+    KEUANGAN: ['admin-dashboard', 'admin-finance', 'admin-donasi', 'admin-divisi'],
   };
 
   const permData = [];
@@ -54,6 +54,20 @@ async function main() {
   }
   await prisma.rolePermission.createMany({ data: permData });
   console.log('✅ Default role permissions dibuat');
+
+  // ─── Divisi ───────────────────────────────────────────────────────────────
+  await prisma.divisi.createMany({
+    data: [
+      { nama: 'Dakwah', deskripsi: 'Divisi dakwah dan kajian', urutan: 1 },
+      { nama: 'Sosial', deskripsi: 'Divisi program sosial dan bantuan', urutan: 2 },
+      { nama: 'Pendidikan', deskripsi: 'Divisi pendidikan dan tahfizh', urutan: 3 },
+      { nama: 'Usaha', deskripsi: 'Divisi usaha ekonomi dan umroh', urutan: 4 },
+      { nama: 'Multimedia', deskripsi: 'Divisi multimedia dan IT', urutan: 5 },
+      { nama: 'Operasional', deskripsi: 'Divisi operasional dan sarana', urutan: 6 },
+      { nama: 'Wakaf', deskripsi: 'Divisi program wakaf', urutan: 7 },
+    ],
+  });
+  console.log('✅ Data divisi dibuat');
 
   // ─── Rekening Infaq ───────────────────────────────────────────────────────
   await prisma.rekening.createMany({

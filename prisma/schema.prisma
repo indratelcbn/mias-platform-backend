@@ -250,14 +250,19 @@ model Mustahik {
 }
 
 // ─── Divisi (untuk Program Infaq & Wakaf) ────────────────────────────────────
-enum Divisi {
-  DAKWAH
-  SOSIAL
-  PENDIDIKAN
-  USAHA
-  MULTIMEDIA
-  OPERASIONAL
-  WAKAF
+model Divisi {
+  id        String   @id @default(uuid())
+  nama      String   @unique
+  deskripsi String?
+  isActive  Boolean  @default(true) @map("is_active")
+  urutan    Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  programDonasi ProgramDonasi[]
+  programWakaf  ProgramWakaf[]
+
+  @@map("divisi")
 }
 
 // ─── Program Infaq ────────────────────────────────────────────────────────────
@@ -266,7 +271,8 @@ model ProgramDonasi {
   kode        String?
   judul       String
   deskripsi   String?
-  divisi      Divisi?
+  divisiId    String?  @map("divisi_id")
+  divisi      Divisi?  @relation(fields: [divisiId], references: [id])
   target      Decimal  @db.Decimal(15, 2)
   terkumpul   Decimal  @default(0) @db.Decimal(15, 2)
   isActive    Boolean  @default(true) @map("is_active")
@@ -284,7 +290,8 @@ model ProgramWakaf {
   kode        String?
   kegiatan    String
   deskripsi   String?
-  divisi      Divisi?
+  divisiId    String?  @map("divisi_id")
+  divisi      Divisi?  @relation(fields: [divisiId], references: [id])
   target      Decimal  @default(0) @db.Decimal(15, 2)
   terkumpul   Decimal  @default(0) @db.Decimal(15, 2)
   isActive    Boolean  @default(true) @map("is_active")
@@ -560,6 +567,7 @@ model FinanceTransaction {
   type            TransactionType
   amount          Decimal          @db.Decimal(15, 2)
   uniqueCode      Int?             @map("unique_code") // 3 digit kode unik (001-999)
+  transactionCode String?          @map("transaction_code") // Kode transaksi unik, otomatis untuk akun CASH atau dari referensi rekonsiliasi
   actualAmount    Decimal?         @db.Decimal(15, 2) @map("actual_amount") // Nominal asli tanpa kode
   programType     ProgramType?     @map("program_type")
   programId       String?          @map("program_id") // ID dari program_donasi atau program_wakaf
@@ -576,6 +584,7 @@ model FinanceTransaction {
   reconciliations FinanceReconciliation[]
 
   @@index([accountId])
+  @@index([transactionCode])
   @@index([transactionDate])
   @@index([type])
   @@index([programType, programId])
@@ -606,20 +615,28 @@ model FinanceBankImportDetail {
   id              String   @id @default(uuid())
   importId        String   @map("import_id")
   accountId       String   @map("account_id")
-  transactionId   String   @map("transaction_id") // ID/Reference dari bank (WAJIB UNIQUE per account)
+  transactionId   String?  @map("transaction_id") // ID/Reference dari bank (WAJIB UNIQUE per account)
   transactionDate DateTime @map("transaction_date")
   description     String
   debit           Decimal? @db.Decimal(15, 2)
   credit          Decimal? @db.Decimal(15, 2)
   balance         Decimal  @db.Decimal(15, 2)
+  programCode     String?  @map("program_code")
+  programType     String?  @map("program_type")
+  programId       String?  @map("program_id")
+  programName     String?  @map("program_name")
+  rowHash         String   @map("row_hash")
+  divisiId        String?  @map("divisi_id")
+  divisiNama      String?  @map("divisi_nama")
   createdAt       DateTime @default(now()) @map("created_at")
 
   import          FinanceBankImport @relation(fields: [importId], references: [id], onDelete: Cascade)
   account         FinanceAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
   reconciliations FinanceReconciliation[]
 
-  // ANTI DUPLICATE: Constraint untuk mencegah import duplicate
+  // ANTI DUPLICATE: Constraints untuk mencegah import duplicate
   @@unique([transactionId, accountId])
+  @@unique([accountId, rowHash])
   @@index([importId])
   @@index([accountId])
   @@index([transactionDate])

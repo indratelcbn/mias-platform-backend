@@ -95,9 +95,27 @@ const autoMatch = async (accountId, options = {}) => {
     }
   }
 
-  // Create reconciliation records for matches
+  // Create or update reconciliation records for matches
   const reconciliations = await Promise.all(
     matches.map(async ({ bankTransaction, internalTransaction }) => {
+      const existingRecon = await prisma.financeReconciliation.findFirst({
+        where: { bankImportDetailId: bankTransaction.id, status: { in: ['PENDING', 'UNMATCHED'] } },
+      });
+
+      if (existingRecon) {
+        return prisma.financeReconciliation.update({
+          where: { id: existingRecon.id },
+          data: {
+            transactionId: internalTransaction.id,
+            status: 'MATCHED',
+            matchedBy: 'AUTO',
+            matchedAt: new Date(),
+            notes: 'Auto-matched by system',
+          },
+          include: { transaction: true, bankImportDetail: true },
+        });
+      }
+
       return prisma.financeReconciliation.create({
         data: {
           transactionId: internalTransaction.id,
@@ -131,6 +149,7 @@ const autoMatch = async (accountId, options = {}) => {
             transactionDate: bankTx.transactionDate,
             type,
             amount,
+            transactionCode: bankTx.transactionId,
             uniqueCode: parsed.uniqueCode,
             actualAmount: parsed.actualAmount,
             programType: parsed.program ? parsed.program.type : null,
@@ -207,21 +226,51 @@ const manualMatch = async (bankImportDetailId, transactionId, userId = null) => 
     throw err;
   }
 
-  // Create reconciliation
-  const reconciliation = await prisma.financeReconciliation.create({
-    data: {
-      transactionId,
-      bankImportDetailId,
-      status: 'MATCHED',
-      matchedBy: userId || 'MANUAL',
-      matchedAt: new Date(),
-      notes: 'Manually matched',
-    },
-    include: {
-      transaction: true,
-      bankImportDetail: true,
-    },
+  if (!internalTx.transactionCode && bankTx.transactionId) {
+    await prisma.financeTransaction.update({
+      where: { id: internalTx.id },
+      data: { transactionCode: bankTx.transactionId },
+    });
+  }
+
+  const existingRecon = await prisma.financeReconciliation.findFirst({
+    where: { bankImportDetailId },
   });
+
+  let reconciliation;
+  if (existingRecon) {
+    reconciliation = await prisma.financeReconciliation.update({
+      where: { id: existingRecon.id },
+      data: {
+        transactionId,
+        status: 'MATCHED',
+        matchedBy: userId || 'MANUAL',
+        matchedAt: new Date(),
+        notes: 'Manually matched',
+      },
+      include: {
+        transaction: true,
+        bankImportDetail: true,
+      },
+    });
+  } else {
+    reconciliation = await prisma.financeReconciliation.create({
+      data: {
+        transactionId,
+        bankImportDetailId,
+        status: 'MATCHED',
+        matchedBy: userId || 'MANUAL',
+        matchedAt: new Date(),
+        notes: 'Manually matched',
+      },
+      include: {
+        transaction: true,
+        bankImportDetail: true,
+      },
+    });
+  }
+
+  return reconciliation;
 
   return reconciliation;
 };
@@ -326,7 +375,10 @@ const getAllReconciliations = async ({
   accountId,
   status,
 } = {}) => {
-  const skip = (page - 1) * limit;
+  // Support special value 'all' (or numeric 0) to return all rows without pagination
+  const wantAll = (String(limit).toLowerCase() === 'all' || Number(limit) === 0);
+  const parsedLimit = wantAll ? undefined : Number(limit || 20);
+  const skip = wantAll ? undefined : (Number(page) - 1) * Number(parsedLimit || 20);
   const where = {};
 
   if (status) where.status = status;
@@ -334,25 +386,31 @@ const getAllReconciliations = async ({
     where.bankImportDetail = { accountId };
   }
 
-  const [data, total] = await Promise.all([
-    prisma.financeReconciliation.findMany({
-      where,
-      skip,
-      take: Number(limit),
-      orderBy: { createdAt: 'desc' },
-      include: {
-        transaction: {
-          include: {
-            account: { select: { id: true, name: true } },
-          },
-        },
-        bankImportDetail: {
-          include: {
-            account: { select: { id: true, name: true } },
-          },
+  // Build base query args
+  const findArgs = {
+    where,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      transaction: {
+        include: {
+          account: { select: { id: true, name: true } },
         },
       },
-    }),
+      bankImportDetail: {
+        include: {
+          account: { select: { id: true, name: true } },
+        },
+      },
+    },
+  };
+
+  if (!wantAll) {
+    findArgs.take = Number(parsedLimit);
+    findArgs.skip = skip;
+  }
+
+  const [data, total] = await Promise.all([
+    prisma.financeReconciliation.findMany(findArgs),
     prisma.financeReconciliation.count({ where }),
   ]);
 
@@ -377,9 +435,12 @@ const getAllReconciliations = async ({
     matchedByName: r.matchedBy && userMap[r.matchedBy] ? userMap[r.matchedBy] : null,
   }));
 
+  const metaLimit = wantAll ? 'all' : Number(limit);
+  const totalPages = wantAll ? 1 : Math.ceil(total / Number(limit || parsedLimit || 20));
+
   return {
     data: dataWithUser,
-    meta: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) },
+    meta: { total, page: Number(page), limit: metaLimit, totalPages },
   };
 };
 
@@ -465,15 +526,21 @@ const assignProgram = async (reconciliationId, payload = {}, userId = null) => {
 
   // Case A: recon already has internal transaction → update its program fields
   if (recon.transactionId) {
+    const updateData = {
+      programType: programType || null,
+      programId: programId || null,
+      programName,
+      description: description !== undefined ? description : undefined,
+      notes: notes !== undefined ? notes : undefined,
+    };
+
+    if (!recon.transaction?.transactionCode && recon.bankImportDetail?.transactionId) {
+      updateData.transactionCode = recon.bankImportDetail.transactionId;
+    }
+
     await prisma.financeTransaction.update({
       where: { id: recon.transactionId },
-      data: {
-        programType: programType || null,
-        programId: programId || null,
-        programName,
-        description: description !== undefined ? description : undefined,
-        notes: notes !== undefined ? notes : undefined,
-      },
+      data: updateData,
     });
 
     return prisma.financeReconciliation.update({
@@ -502,12 +569,17 @@ const assignProgram = async (reconciliationId, payload = {}, userId = null) => {
   const amount = isCredit ? creditAmt : debitAmt;
   const type = isCredit ? 'IN' : 'OUT';
 
+  const parsed = await financeProgramService.parseAmountWithUniqueCode(amount);
+
   const transaction = await prisma.financeTransaction.create({
     data: {
       accountId: bankTx.accountId,
       transactionDate: bankTx.transactionDate,
       type,
       amount,
+      transactionCode: bankTx.transactionId,
+      uniqueCode: parsed.uniqueCode,
+      actualAmount: parsed.actualAmount,
       programType: programType || null,
       programId: programId || null,
       programName,

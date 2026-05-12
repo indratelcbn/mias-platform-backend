@@ -145,6 +145,8 @@ router.post(
   financeController.importBankCSV
 );
 
+router.post('/bank-imports/:id/confirm', authMiddleware, adminOnly, financeController.confirmBankImport);
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ─── RECONCILIATION ────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════

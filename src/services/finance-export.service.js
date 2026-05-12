@@ -170,6 +170,7 @@ const generateMonthlyReportExcel = async (report) => {
   const wsProgram = workbook.addWorksheet('Per Program');
   wsProgram.columns = [
     { header: 'Program', key: 'programName', width: 32 },
+    { header: 'Nama Akun', key: 'accountName', width: 24 },
     { header: 'Tipe', key: 'programType', width: 12 },
     { header: 'Transaksi', key: 'count', width: 12 },
     { header: 'Pemasukan', key: 'totalIn', width: 18 },
@@ -180,6 +181,7 @@ const generateMonthlyReportExcel = async (report) => {
   (report.programBreakdown || []).forEach((p) => {
     wsProgram.addRow({
       programName: p.programName,
+      accountName: p.accountName || '-',
       programType: p.programType,
       count: p.count,
       totalIn: Number(p.totalIn) || 0,
@@ -379,11 +381,12 @@ const generateMonthlyReportPDF = (report) => {
         doc.fontSize(12).font('Helvetica-Bold').text('RINCIAN PER PROGRAM');
         doc.moveDown(0.3);
         drawTable(doc, {
-          headers: ['Program', 'Tipe', 'Trx', 'Pemasukan', 'Pengeluaran'],
-          widths: [180, 50, 40, 110, 110],
-          align: ['left', 'center', 'center', 'right', 'right'],
+          headers: ['Program', 'Nama Akun', 'Tipe', 'Trx', 'Pemasukan', 'Pengeluaran'],
+          widths: [150, 120, 50, 40, 90, 90],
+          align: ['left', 'left', 'center', 'center', 'right', 'right'],
           rows: programBreakdown.map((p) => [
             p.programName,
+            p.accountName || '-',
             p.programType,
             String(p.count || 0),
             formatCurrency(p.totalIn),

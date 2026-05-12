@@ -3,6 +3,7 @@ const csv = require('csv-parser');
 const fs = require('fs');
 const { Readable } = require('stream');
 const financeProgramService = require('./finance-program.service');
+const crypto = require('crypto');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ─── BANK IMPORT & CSV PARSING SERVICE ─────────────────────────────────────────
@@ -76,6 +77,22 @@ const parseCSVFromBuffer = async (buffer, options = {}) => {
   });
 };
 
+const normalizeField = (value) => {
+  const normalized = String(value || '').trim();
+  return normalized === '' ? null : normalized;
+};
+
+const extractLastThreeDigitsFromRaw = (raw) => {
+  if (!raw) return null;
+  // keep only digits
+  const digits = String(raw).replace(/\D/g, '');
+  if (!digits) return null;
+  const last3 = digits.slice(-3);
+  const parsed = parseInt(last3, 10);
+  if (Number.isNaN(parsed)) return null;
+  return parsed;
+};
+
 /**
  * Normalize bank CSV data to standard format
  * This function maps different bank formats to our standard format
@@ -96,57 +113,98 @@ const normalizeBankData = (row, bankFormat = 'STANDARD') => {
   try {
     // Standard format (customizable)
     if (bankFormat === 'STANDARD') {
-      normalized = {
-        transactionId: row['Transaction ID'] || row['transaction_id'] || row['Nomor Referensi'] || '',
-        transactionDate: parseDate(row['Date'] || row['Tanggal'] || row['transaction_date']),
-        description: row['Description'] || row['Keterangan'] || row['description'] || '',
-        debit: parseAmount(row['Debit'] || row['debit']),
-        credit: parseAmount(row['Credit'] || row['Kredit'] || row['credit']),
-        balance: parseAmount(row['Balance'] || row['Saldo'] || row['balance']),
-      };
+        // preserve raw fields so we can extract trailing digits before numeric parsing
+        const rawDebit = normalizeField(row['Debit'] || row['debit']);
+        const rawCredit = normalizeField(row['Credit'] || row['Kredit'] || row['credit']);
+        const programCodeRaw = normalizeField(row['Kode'] || row['kode'] || row['Code'] || row['code'] || '');
+
+        normalized = {
+          transactionId: normalizeField(row['Transaction ID'] || row['transaction_id'] || row['Nomor Referensi'] || ''),
+          transactionDate: parseDate(row['Date'] || row['Tanggal'] || row['transaction_date']),
+          description: row['Description'] || row['Keterangan'] || row['description'] || '',
+          rawDebit,
+          rawCredit,
+          debit: parseAmount(rawDebit),
+          credit: parseAmount(rawCredit),
+          balance: parseAmount(row['Balance'] || row['Saldo'] || row['balance']),
+          programCode: programCodeRaw,
+          programCodeCandidate: programCodeRaw || extractLastThreeDigitsFromRaw(rawCredit || rawDebit),
+        };
     }
     // BCA Format
     else if (bankFormat === 'BCA') {
+      const rawDebit = normalizeField(row['MUTASI DEBET'] || row['DEBET']);
+      const rawCredit = normalizeField(row['MUTASI KREDIT'] || row['KREDIT']);
+      const programCodeRaw = normalizeField(row['Kode'] || row['kode'] || row['Code'] || row['code'] || '');
+
       normalized = {
-        transactionId: row['NOMOR REFERENSI'] || row['NO REFERENSI'] || '',
+        transactionId: normalizeField(row['NOMOR REFERENSI'] || row['NO REFERENSI'] || ''),
         transactionDate: parseDate(row['TANGGAL']),
         description: row['KETERANGAN'] || '',
-        debit: parseAmount(row['MUTASI DEBET'] || row['DEBET']),
-        credit: parseAmount(row['MUTASI KREDIT'] || row['KREDIT']),
+        rawDebit,
+        rawCredit,
+        debit: parseAmount(rawDebit),
+        credit: parseAmount(rawCredit),
         balance: parseAmount(row['SALDO']),
+        programCode: programCodeRaw,
+        programCodeCandidate: programCodeRaw || extractLastThreeDigitsFromRaw(rawCredit || rawDebit),
       };
     }
     // Mandiri Format
     else if (bankFormat === 'MANDIRI') {
+      const rawDebit = normalizeField(row['DEBET']);
+      const rawCredit = normalizeField(row['KREDIT']);
+      const programCodeRaw = normalizeField(row['Kode'] || row['kode'] || row['Code'] || row['code'] || '');
+
       normalized = {
-        transactionId: row['TXN ID'] || row['NO REFERENSI'] || '',
+        transactionId: normalizeField(row['TXN ID'] || row['NO REFERENSI'] || ''),
         transactionDate: parseDate(row['TGL TRANSAKSI']),
         description: row['KETERANGAN'] || '',
-        debit: parseAmount(row['DEBET']),
-        credit: parseAmount(row['KREDIT']),
+        rawDebit,
+        rawCredit,
+        debit: parseAmount(rawDebit),
+        credit: parseAmount(rawCredit),
         balance: parseAmount(row['SALDO']),
+        programCode: programCodeRaw,
+        programCodeCandidate: programCodeRaw || extractLastThreeDigitsFromRaw(rawCredit || rawDebit),
       };
     }
     // BNI Format
     else if (bankFormat === 'BNI') {
+      const rawDebit = normalizeField(row['DEBIT']);
+      const rawCredit = normalizeField(row['CREDIT'] || row['KREDIT']);
+      const programCodeRaw = normalizeField(row['Kode'] || row['kode'] || row['Code'] || row['code'] || '');
+
       normalized = {
-        transactionId: row['REFERENCE'] || row['NO REFERENSI'] || '',
+        transactionId: normalizeField(row['REFERENCE'] || row['NO REFERENSI'] || ''),
         transactionDate: parseDate(row['DATE'] || row['TANGGAL']),
         description: row['DESCRIPTION'] || row['KETERANGAN'] || '',
-        debit: parseAmount(row['DEBIT']),
-        credit: parseAmount(row['CREDIT'] || row['KREDIT']),
+        rawDebit,
+        rawCredit,
+        debit: parseAmount(rawDebit),
+        credit: parseAmount(rawCredit),
         balance: parseAmount(row['BALANCE'] || row['SALDO']),
+        programCode: programCodeRaw,
+        programCodeCandidate: programCodeRaw || extractLastThreeDigitsFromRaw(rawCredit || rawDebit),
       };
     }
     // BRI Format  
     else if (bankFormat === 'BRI') {
+      const rawDebit = normalizeField(row['DEBIT']);
+      const rawCredit = normalizeField(row['KREDIT']);
+      const programCodeRaw = normalizeField(row['Kode'] || row['kode'] || row['Code'] || row['code'] || '');
+
       normalized = {
         transactionId: row['NO REFERENSI'] || '',
         transactionDate: parseDate(row['TANGGAL']),
         description: row['KETERANGAN'] || '',
-        debit: parseAmount(row['DEBIT']),
-        credit: parseAmount(row['KREDIT']),
+        rawDebit,
+        rawCredit,
+        debit: parseAmount(rawDebit),
+        credit: parseAmount(rawCredit),
         balance: parseAmount(row['SALDO']),
+        programCode: programCodeRaw,
+        programCodeCandidate: programCodeRaw || extractLastThreeDigitsFromRaw(rawCredit || rawDebit),
       };
     }
     // BSI Format (Bank Syariah Indonesia)
@@ -174,18 +232,26 @@ const normalizeBankData = (row, bankFormat = 'STANDARD') => {
         .replace(/[\r\n]+/g, ' ')
         .trim();
 
-      normalized = {
-        transactionId: String(
-          get('No.Referensi', 'No Referensi', 'Nomor Referensi', 'Reference')
-        ).trim(),
-        transactionDate: parseDate(rawDate),
-        description: String(get('Deskripsi', 'Keterangan', 'Description') || '')
-          .replace(/[\r\n]+/g, ' ')
-          .trim(),
-        debit: parseAmount(get('Debet', 'Debit')),
-        credit: parseAmount(get('Kredit', 'Credit')),
-        balance: parseAmount(get('Saldo Riil', 'Saldo', 'Balance')),
-      };
+        const rawDebit = normalizeField(get('Debet', 'Debit'));
+        const rawCredit = normalizeField(get('Kredit', 'Credit'));
+        const programCodeRaw = normalizeField(String(get('Kode', 'kode', 'Code', 'code') || ''));
+
+        normalized = {
+          transactionId: String(
+            get('No.Referensi', 'No Referensi', 'Nomor Referensi', 'Reference')
+          ).trim(),
+          transactionDate: parseDate(rawDate),
+          description: String(get('Deskripsi', 'Keterangan', 'Description') || '')
+            .replace(/[\r\n]+/g, ' ')
+            .trim(),
+          rawDebit,
+          rawCredit,
+          debit: parseAmount(rawDebit),
+          credit: parseAmount(rawCredit),
+          balance: parseAmount(get('Saldo Riil', 'Saldo', 'Balance')),
+          programCode: programCodeRaw,
+          programCodeCandidate: programCodeRaw || extractLastThreeDigitsFromRaw(rawCredit || rawDebit),
+        };
     }
 
     // Validate required fields
@@ -301,82 +367,120 @@ const importBankCSV = async ({
     throw err;
   }
 
-  // Start transaction
-  const result = await prisma.$transaction(async (tx) => {
-    // Create import header
-    const importHeader = await tx.financeBankImport.create({
-      data: {
-        accountId,
-        fileName,
-        uploadedBy,
-        totalRows: normalizedRows.length,
-        insertedRows: 0,
-        skippedRows: 0,
-      },
-    });
-
-    let insertedCount = 0;
-    let skippedCount = 0;
-    const errors = [];
-
-    // Insert each row (with duplicate check)
-    for (const row of normalizedRows) {
-      try {
-        // Check if already exists
-        const existing = await tx.financeBankImportDetail.findUnique({
-          where: {
-            transactionId_accountId: {
-              transactionId: row.transactionId,
-              accountId,
-            },
-          },
-        });
-
-        if (existing) {
-          skippedCount++;
-          continue; // Skip duplicate
-        }
-
-        // Insert new row
-        await tx.financeBankImportDetail.create({
-          data: {
-            importId: importHeader.id,
-            accountId,
-            transactionId: row.transactionId,
-            transactionDate: row.transactionDate,
-            description: row.description,
-            debit: row.debit,
-            credit: row.credit,
-            balance: row.balance,
-          },
-        });
-
-        insertedCount++;
-      } catch (error) {
-        errors.push({ row, error: error.message });
-        skippedCount++;
-      }
-    }
-
-    // Update header with counts
-    await tx.financeBankImport.update({
-      where: { id: importHeader.id },
-      data: {
-        insertedRows: insertedCount,
-        skippedRows: skippedCount,
-      },
-    });
-
-    return {
-      importId: importHeader.id,
+  // Create import header first so we can store counts later
+  const importHeader = await prisma.financeBankImport.create({
+    data: {
+      accountId,
+      fileName,
+      uploadedBy,
       totalRows: normalizedRows.length,
-      insertedRows: insertedCount,
-      skippedRows: skippedCount,
-      errors,
-    };
+      insertedRows: 0,
+      skippedRows: 0,
+    },
   });
 
-  return result;
+  let insertedCount = 0;
+  let skippedCount = 0;
+  const errors = [];
+
+  // Insert each row (with duplicate check)
+  for (const row of normalizedRows) {
+    try {
+      // Build a deterministic fingerprint for the row so we can reliably detect duplicates
+      const descNorm = String(row.description || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const txDate = row.transactionDate ? new Date(row.transactionDate) : null;
+      const txDateKey = txDate ? txDate.toISOString().slice(0, 19) : '';
+      const debitVal = Number(row.debit || 0).toFixed(2);
+      const creditVal = Number(row.credit || 0).toFixed(2);
+      const balanceVal = Number(row.balance || 0).toFixed(2);
+      const fingerprint = `${txDateKey}|${descNorm}|${debitVal}|${creditVal}|${balanceVal}|${row.transactionId || ''}`;
+      const rowHash = crypto.createHash('md5').update(fingerprint).digest('hex');
+
+      // Check duplicates by transactionId (if present) or by accountId+rowHash
+      let existing = null;
+      if (row.transactionId) {
+        existing = await prisma.financeBankImportDetail.findUnique({
+          where: { transactionId_accountId: { transactionId: row.transactionId, accountId } },
+        });
+      }
+
+      if (!existing) {
+        // try by hash
+        existing = await prisma.financeBankImportDetail.findUnique({
+          where: { accountId_rowHash: { accountId, rowHash } },
+        }).catch(() => null);
+      }
+
+      if (existing) {
+        skippedCount++;
+        continue; // Skip duplicate
+      }
+
+      // Insert new row
+      const isCredit = row.credit != null && Number(row.credit) > 0;
+      const amount = isCredit ? Number(row.credit) : Number(row.debit || 0);
+      // prefer explicit programCode, then candidate extracted from raw fields
+      const programCodeToUse = row.programCode || row.programCodeCandidate || null;
+      const parsed = await financeProgramService.parseAmountWithUniqueCode(amount, programCodeToUse);
+      const fallbackProgram = await financeProgramService.getOperationalFallbackProgram();
+      const program = parsed.program || fallbackProgram;
+      if (program?.id === '000') {
+        program.name = '[000] Operasional dan Dakwah';
+      }
+
+      const detail = await prisma.financeBankImportDetail.create({
+        data: {
+          importId: importHeader.id,
+          accountId,
+          transactionId: row.transactionId || null,
+          transactionDate: row.transactionDate,
+          description: row.description,
+          debit: row.debit,
+          credit: row.credit,
+          balance: row.balance,
+          programCode: row.programCodeCandidate || row.programCode || null,
+          programType: program?.type || null,
+          programId: program?.id || null,
+          programName: program?.name || null,
+          rowHash,
+          divisiId: program?.divisiId || null,
+          divisiNama: program?.divisiNama || null,
+        },
+      });
+
+      await prisma.financeReconciliation.create({
+        data: {
+          bankImportDetailId: detail.id,
+          status: 'PENDING',
+          matchedBy: 'SYSTEM',
+          matchedAt: null,
+          notes: 'Imported and pending reconciliation',
+        },
+      });
+
+      insertedCount++;
+    } catch (error) {
+      errors.push({ row, error: error.message });
+      skippedCount++;
+    }
+  }
+
+  // Update header with counts
+  await prisma.financeBankImport.update({
+    where: { id: importHeader.id },
+    data: {
+      insertedRows: insertedCount,
+      skippedRows: skippedCount,
+    },
+  });
+
+  return {
+    importId: importHeader.id,
+    totalRows: normalizedRows.length,
+    insertedRows: insertedCount,
+    skippedRows: skippedCount,
+    errors,
+  };
 };
 
 /**
@@ -401,8 +505,32 @@ const getAllBankImports = async ({ page = 1, limit = 20, accountId } = {}) => {
     prisma.financeBankImport.count({ where }),
   ]);
 
+  const importIds = data.map((row) => row.id);
+  const pendingCounts = importIds.length > 0
+    ? await prisma.financeReconciliation.findMany({
+        where: {
+          status: 'PENDING',
+          bankImportDetail: { importId: { in: importIds } },
+        },
+        select: {
+          bankImportDetail: { select: { importId: true } },
+        },
+      })
+    : [];
+
+  const countMap = pendingCounts.reduce((acc, recon) => {
+    const importId = recon.bankImportDetail.importId;
+    acc[importId] = (acc[importId] || 0) + 1;
+    return acc;
+  }, {});
+
+  const enrichedData = data.map((row) => ({
+    ...row,
+    pendingCount: countMap[row.id] || 0,
+  }));
+
   return {
-    data,
+    data: enrichedData,
     meta: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) },
   };
 };
@@ -461,6 +589,95 @@ const deleteBankImport = async (importId) => {
 /**
  * Get unmatched bank transactions (for reconciliation)
  */
+const confirmBankImport = async (importId, userId = null) => {
+  const importHeader = await prisma.financeBankImport.findUnique({
+    where: { id: importId },
+  });
+
+  if (!importHeader) {
+    const err = new Error('Import tidak ditemukan.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const pendingRecons = await prisma.financeReconciliation.findMany({
+    where: {
+      bankImportDetail: {
+        importId,
+      },
+      status: 'PENDING',
+    },
+    include: {
+      bankImportDetail: true,
+    },
+  });
+
+  if (!pendingRecons.length) {
+    return { importId, processed: 0, created: 0 };
+  }
+
+  const results = [];
+  for (const recon of pendingRecons) {
+    const bankTx = recon.bankImportDetail;
+    if (!bankTx) continue;
+
+    const creditAmt = bankTx.credit != null ? Number(bankTx.credit) : 0;
+    const debitAmt = bankTx.debit != null ? Number(bankTx.debit) : 0;
+    const isCredit = creditAmt > 0;
+    const amount = isCredit ? creditAmt : debitAmt;
+    const type = isCredit ? 'IN' : 'OUT';
+
+    const parsed = await financeProgramService.parseAmountWithUniqueCode(amount, bankTx.programCode || null);
+    const fallbackProgram = await financeProgramService.getOperationalFallbackProgram();
+    const program = parsed.program || fallbackProgram;
+    if (program?.id === '000') {
+      program.name = '[000] Operasional dan Dakwah';
+    }
+
+    let transaction = await prisma.financeTransaction.findFirst({
+      where: {
+        accountId: bankTx.accountId,
+        transactionCode: bankTx.transactionId,
+      },
+    });
+
+    if (!transaction) {
+      transaction = await prisma.financeTransaction.create({
+        data: {
+          accountId: bankTx.accountId,
+          transactionDate: bankTx.transactionDate,
+          type,
+          amount,
+          transactionCode: bankTx.transactionId,
+          uniqueCode: isCredit ? parsed.uniqueCode : null,
+          actualAmount: isCredit ? parsed.actualAmount : null,
+          programType: bankTx.programType || program?.type || null,
+          programId: bankTx.programId || program?.id || null,
+          programName: bankTx.programName || program?.name || null,
+          description: bankTx.description,
+          notes: 'Created from confirmed bank import',
+          createdBy: userId ? String(userId) : 'SYSTEM',
+        },
+      });
+    }
+
+    await prisma.financeReconciliation.update({
+      where: { id: recon.id },
+      data: {
+        transactionId: transaction.id,
+        status: 'MATCHED',
+        matchedBy: userId ? String(userId) : 'SYSTEM',
+        matchedAt: new Date(),
+        notes: 'Confirmed import and transaction created',
+      },
+    });
+
+    results.push({ reconciliationId: recon.id, transactionId: transaction.id });
+  }
+
+  return { importId, processed: pendingRecons.length, created: results.length };
+};
+
 const getUnmatchedBankTransactions = async (accountId) => {
   // Get all bank import details that don't have a reconciliation match
   const unmatched = await prisma.financeBankImportDetail.findMany({
@@ -486,6 +703,7 @@ module.exports = {
   parseDate,
   parseAmount,
   importBankCSV,
+  confirmBankImport,
   getAllBankImports,
   getBankImportDetails,
   deleteBankImport,

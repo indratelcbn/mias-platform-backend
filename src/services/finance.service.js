@@ -44,6 +44,33 @@ const getAccountById = async (id) => {
   return account;
 };
 
+const MONTH_ROMAN = [null, 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+
+const generateTransactionCode = async (accountId, transactionDate) => {
+  const date = new Date(transactionDate);
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  const romanMonth = MONTH_ROMAN[month] || String(month);
+  const suffix = `/${romanMonth}/${year}`;
+
+  const lastTransaction = await prisma.financeTransaction.findFirst({
+    where: {
+      accountId,
+      transactionCode: { endsWith: suffix },
+    },
+    orderBy: { transactionCode: 'desc' },
+    select: { transactionCode: true },
+  });
+
+  let nextSequence = 1;
+  if (lastTransaction?.transactionCode) {
+    const match = lastTransaction.transactionCode.match(/^(\d{1,3})\//);
+    if (match) nextSequence = Number(match[1]) + 1;
+  }
+
+  return `${String(nextSequence).padStart(3, '0')}/${romanMonth}/${year}`;
+};
+
 /**
  * Create new account
  */
@@ -241,7 +268,7 @@ const getTransactionById = async (id) => {
  */
 const createTransaction = async (data) => {
   // Validate account exists
-  await getAccountById(data.accountId);
+  const account = await getAccountById(data.accountId);
 
   // Parse kode unik if present
   let uniqueCode = null;
@@ -258,13 +285,19 @@ const createTransaction = async (data) => {
     }
   }
 
+  let transactionCode = data.transactionCode || null;
+  if (!transactionCode && account.type === 'CASH') {
+    transactionCode = await generateTransactionCode(data.accountId, data.transactionDate);
+  }
+
   const transaction = await prisma.financeTransaction.create({
     data: {
       accountId: data.accountId,
       transactionDate: new Date(data.transactionDate),
       type: data.type,
       amount: data.amount,
-      uniqueCode: uniqueCode,
+      transactionCode,
+      uniqueCode,
       actualAmount: uniqueCode ? actualAmount : null,
       programType: data.programType || null,
       programId: data.programId || null,
@@ -287,7 +320,8 @@ const createTransaction = async (data) => {
  * Update transaction
  */
 const updateTransaction = async (id, data) => {
-  await getTransactionById(id); // Check if exists
+  const existing = await getTransactionById(id); // Check if exists
+  const account = await getAccountById(data.accountId || existing.accountId);
 
   // Recalculate kode unik if amount changed
   let uniqueCode = null;
@@ -303,6 +337,11 @@ const updateTransaction = async (id, data) => {
     }
   }
 
+  let transactionCode = data.transactionCode ?? existing.transactionCode ?? null;
+  if (!transactionCode && account.type === 'CASH') {
+    transactionCode = await generateTransactionCode(data.accountId || existing.accountId, data.transactionDate || existing.transactionDate);
+  }
+
   return prisma.financeTransaction.update({
     where: { id },
     data: {
@@ -310,8 +349,9 @@ const updateTransaction = async (id, data) => {
       transactionDate: data.transactionDate ? new Date(data.transactionDate) : undefined,
       type: data.type,
       amount: data.amount,
-      uniqueCode: uniqueCode,
-      actualAmount: actualAmount,
+      transactionCode,
+      uniqueCode,
+      actualAmount,
       programType: data.programType,
       programId: data.programId,
       programName: data.programName,
@@ -385,16 +425,19 @@ const getDashboardSummary = async ({ startDate, endDate } = {}) => {
 
   // ─── Saldo per Divisi ──────────────────────────────────────────────────────
   // Hitung saldo per divisi berdasarkan program yang terkait pada transaksi.
-  const DIVISI_LIST = ['DAKWAH', 'SOSIAL', 'PENDIDIKAN', 'USAHA', 'MULTIMEDIA', 'OPERASIONAL', 'WAKAF'];
-
-  const [allInfaq, allWakaf] = await Promise.all([
-    prisma.programDonasi.findMany({ select: { id: true, divisi: true } }),
-    prisma.programWakaf.findMany({ select: { id: true, divisi: true } }),
+  const [activeDivisi, allInfaq, allWakaf] = await Promise.all([
+    prisma.divisi.findMany({ where: { isActive: true }, orderBy: { urutan: 'asc' } }),
+    prisma.programDonasi.findMany({
+      select: { id: true, divisi: { select: { id: true, nama: true } } },
+    }),
+    prisma.programWakaf.findMany({
+      select: { id: true, divisi: { select: { id: true, nama: true } } },
+    }),
   ]);
 
   const programDivisiMap = {};
   for (const p of allInfaq) programDivisiMap[`INFAQ|${p.id}`] = p.divisi || null;
-  for (const p of allWakaf) programDivisiMap[`WAKAF|${p.id}`] = p.divisi || 'WAKAF';
+  for (const p of allWakaf) programDivisiMap[`WAKAF|${p.id}`] = p.divisi || null;
 
   const divisiTxs = await prisma.financeTransaction.findMany({
     where: { ...where, programId: { not: null }, programType: { not: null } },
@@ -402,16 +445,27 @@ const getDashboardSummary = async ({ startDate, endDate } = {}) => {
   });
 
   const divisiAcc = {};
-  for (const d of DIVISI_LIST) divisiAcc[d] = { divisi: d, totalIn: 0, totalOut: 0, balance: 0 };
+  for (const d of activeDivisi) {
+    divisiAcc[d.id] = { divisi: d.id, divisiNama: d.nama, totalIn: 0, totalOut: 0, balance: 0 };
+  }
 
   for (const t of divisiTxs) {
     const divisi = programDivisiMap[`${t.programType}|${t.programId}`];
-    if (!divisi || !divisiAcc[divisi]) continue;
-    if (t.type === 'IN') divisiAcc[divisi].totalIn += Number(t.amount);
-    else divisiAcc[divisi].totalOut += Number(t.amount);
+    let divisiKey = null;
+    if (divisi && typeof divisi === 'object') divisiKey = divisi.id;
+    else if (typeof divisi === 'string') divisiKey = divisi;
+
+    if (!divisiKey && t.programId === '000') {
+      const operational = activeDivisi.find((d) => d.nama === 'Operasional dan Dakwah');
+      divisiKey = operational?.id || null;
+    }
+
+    if (!divisiKey || !divisiAcc[divisiKey]) continue;
+    if (t.type === 'IN') divisiAcc[divisiKey].totalIn += Number(t.amount);
+    else divisiAcc[divisiKey].totalOut += Number(t.amount);
   }
-  for (const d of DIVISI_LIST) {
-    divisiAcc[d].balance = divisiAcc[d].totalIn - divisiAcc[d].totalOut;
+  for (const key of Object.keys(divisiAcc)) {
+    divisiAcc[key].balance = divisiAcc[key].totalIn - divisiAcc[key].totalOut;
   }
   const divisiBalances = Object.values(divisiAcc);
 
@@ -588,15 +642,23 @@ const getMonthlyReport = async ({ year, month, accountId } = {}) => {
   const categoryBreakdown = Object.values(categoryMap);
 
   // ─── Breakdown per Program ─────────────────────────────────────────────────
+  const normalizeProgramKey = (programType, programId, accountId) =>
+    `${String(programType || '').trim().toUpperCase()}|${String(programId || '').trim()}|${String(accountId || '').trim()}`;
+
   const programMap = {};
   for (const t of transactions) {
     if (!t.programId) continue;
-    const key = `${t.programType}|${t.programId}`;
+    const programType = String(t.programType || '').trim().toUpperCase();
+    const programId = String(t.programId || '').trim();
+    const accountId = String(t.accountId || '').trim();
+    const key = normalizeProgramKey(programType, programId, accountId);
     if (!programMap[key]) {
       programMap[key] = {
-        programType: t.programType,
-        programId: t.programId,
-        programName: t.programName || 'Unknown',
+        programType,
+        programId,
+        accountId,
+        accountName: t.account?.name?.trim() || 'Unknown',
+        programName: t.programName?.trim() || 'Unknown',
         totalIn: 0,
         totalOut: 0,
         count: 0,
@@ -609,24 +671,34 @@ const getMonthlyReport = async ({ year, month, accountId } = {}) => {
   const programBreakdown = Object.values(programMap);
 
   // ─── Breakdown per Divisi ──────────────────────────────────────────────────
-  const DIVISI_LIST = ['DAKWAH', 'SOSIAL', 'PENDIDIKAN', 'USAHA', 'MULTIMEDIA', 'OPERASIONAL', 'WAKAF'];
-  const [allInfaq, allWakaf] = await Promise.all([
-    prisma.programDonasi.findMany({ select: { id: true, divisi: true } }),
-    prisma.programWakaf.findMany({ select: { id: true, divisi: true } }),
+  const [activeDivisi, allInfaq, allWakaf] = await Promise.all([
+    prisma.divisi.findMany({ where: { isActive: true }, orderBy: { urutan: 'asc' } }),
+    prisma.programDonasi.findMany({ select: { id: true, divisi: { select: { id: true, nama: true } } } }),
+    prisma.programWakaf.findMany({ select: { id: true, divisi: { select: { id: true, nama: true } } } }),
   ]);
   const programDivisiMap = {};
-  for (const p of allInfaq) programDivisiMap[`INFAQ|${p.id}`] = p.divisi || null;
-  for (const p of allWakaf) programDivisiMap[`WAKAF|${p.id}`] = p.divisi || 'WAKAF';
+
+  for (const p of allInfaq) programDivisiMap[normalizeProgramKey('INFAQ', p.id)] = p.divisi || null;
+  for (const p of allWakaf) programDivisiMap[normalizeProgramKey('WAKAF', p.id)] = p.divisi || null;
 
   const divisiAcc = {};
-  for (const d of DIVISI_LIST) divisiAcc[d] = { divisi: d, totalIn: 0, totalOut: 0, count: 0 };
+  for (const d of activeDivisi) divisiAcc[d.id] = { divisi: d.id, divisiNama: d.nama, totalIn: 0, totalOut: 0, count: 0 };
   for (const t of transactions) {
     if (!t.programId) continue;
-    const divisi = programDivisiMap[`${t.programType}|${t.programId}`];
-    if (!divisi || !divisiAcc[divisi]) continue;
-    if (t.type === 'IN') divisiAcc[divisi].totalIn += Number(t.amount);
-    else divisiAcc[divisi].totalOut += Number(t.amount);
-    divisiAcc[divisi].count += 1;
+    const divisi = programDivisiMap[normalizeProgramKey(t.programType, t.programId)];
+    let divisiKey = null;
+    if (divisi && typeof divisi === 'object') divisiKey = divisi.id;
+    else if (typeof divisi === 'string') divisiKey = divisi;
+
+    if (!divisiKey && t.programId === '000') {
+      const operational = activeDivisi.find((d) => d.nama === 'Operasional dan Dakwah');
+      divisiKey = operational?.id || null;
+    }
+
+    if (!divisiKey || !divisiAcc[divisiKey]) continue;
+    if (t.type === 'IN') divisiAcc[divisiKey].totalIn += Number(t.amount);
+    else divisiAcc[divisiKey].totalOut += Number(t.amount);
+    divisiAcc[divisiKey].count += 1;
   }
   const divisiBreakdown = Object.values(divisiAcc);
 

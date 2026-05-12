@@ -153,12 +153,16 @@ const deleteRekening = async (id) => {
 
 // ─── Program Donasi ───────────────────────────────────────────────────────────
 const getAllProgram = async () => {
-  return prisma.programDonasi.findMany({ orderBy: [{ urutan: 'asc' }, { createdAt: 'desc' }] });
+  return prisma.programDonasi.findMany({
+    include: { divisi: true },
+    orderBy: [{ urutan: 'asc' }, { createdAt: 'desc' }],
+  });
 };
 
 const getActiveProgram = async () => {
   return prisma.programDonasi.findMany({
     where: { isActive: true, tampilWebsite: true },
+    include: { divisi: true },
     orderBy: [{ urutan: 'asc' }, { createdAt: 'desc' }],
   });
 };
@@ -169,7 +173,7 @@ const createProgram = async (data) => {
       kode: data.kode || null,
       judul: data.judul,
       deskripsi: data.deskripsi || null,
-      divisi: data.divisi || null,
+      divisi: data.divisi ? { connect: { id: data.divisi } } : undefined,
       target: data.target ? parseFloat(data.target) : 0,
       terkumpul: data.terkumpul ? parseFloat(data.terkumpul) : 0,
       isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
@@ -188,7 +192,11 @@ const updateProgram = async (id, data) => {
       kode: data.kode !== undefined ? (data.kode || null) : undefined,
       judul: data.judul,
       deskripsi: data.deskripsi ?? prog.deskripsi,
-      divisi: data.divisi !== undefined ? (data.divisi || null) : undefined,
+      divisi: data.divisi !== undefined
+        ? data.divisi
+          ? { connect: { id: data.divisi } }
+          : { disconnect: true }
+        : undefined,
       target: data.target !== undefined ? parseFloat(data.target) : undefined,
       terkumpul: data.terkumpul !== undefined ? parseFloat(data.terkumpul) : undefined,
       isActive: data.isActive !== undefined ? Boolean(data.isActive) : undefined,
@@ -206,12 +214,16 @@ const deleteProgram = async (id) => {
 
 // ─── Program Wakaf ────────────────────────────────────────────────────────────
 const getAllWakaf = async () => {
-  return prisma.programWakaf.findMany({ orderBy: [{ urutan: 'asc' }, { createdAt: 'desc' }] });
+  return prisma.programWakaf.findMany({
+    include: { divisi: true },
+    orderBy: [{ urutan: 'asc' }, { createdAt: 'desc' }],
+  });
 };
 
 const getActiveWakaf = async () => {
   return prisma.programWakaf.findMany({
     where: { isActive: true, tampilWebsite: true },
+    include: { divisi: true },
     orderBy: [{ urutan: 'asc' }, { createdAt: 'desc' }],
   });
 };
@@ -222,7 +234,7 @@ const createWakaf = async (data) => {
       kode: data.kode || null,
       kegiatan: data.kegiatan,
       deskripsi: data.deskripsi || null,
-      divisi: data.divisi || null,
+      divisi: data.divisi ? { connect: { id: data.divisi } } : undefined,
       target: data.target ? parseFloat(data.target) : 0,
       isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
       tampilWebsite: data.tampilWebsite !== undefined ? Boolean(data.tampilWebsite) : true,
@@ -240,7 +252,11 @@ const updateWakaf = async (id, data) => {
       kode: data.kode !== undefined ? (data.kode || null) : undefined,
       kegiatan: data.kegiatan !== undefined ? data.kegiatan : undefined,
       deskripsi: data.deskripsi !== undefined ? (data.deskripsi || null) : undefined,
-      divisi: data.divisi !== undefined ? (data.divisi || null) : undefined,
+      divisi: data.divisi !== undefined
+        ? data.divisi
+          ? { connect: { id: data.divisi } }
+          : { disconnect: true }
+        : undefined,
       target: data.target !== undefined ? (data.target ? parseFloat(data.target) : 0) : undefined,
       isActive: data.isActive !== undefined ? Boolean(data.isActive) : undefined,
       tampilWebsite: data.tampilWebsite !== undefined ? Boolean(data.tampilWebsite) : undefined,
