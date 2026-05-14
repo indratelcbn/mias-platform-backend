@@ -591,6 +591,148 @@ model FinanceTransaction {
   @@map("finance_transactions")
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── ANALYTICS MODULE (VISITOR TRACKING) ──────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Visitor Logs (Raw visitor data) ───────────────────────────────────────────
+model VisitorLog {
+  id            String   @id @default(uuid())
+  ipAddress     String   @map("ip_address")
+  pagePath      String   @map("page_path")
+  fullUrl       String   @map("full_url")
+  browser       String?
+  browserVersion String? @map("browser_version")
+  operatingSystem String? @map("operating_system")
+  osVersion     String?  @map("os_version")
+  deviceType    String?  @map("device_type")
+  deviceName    String?  @map("device_name")
+  referrer      String?
+  userAgent     String?  @map("user_agent")
+  language      String?
+  screenWidth   Int?     @map("screen_width")
+  screenHeight  Int?     @map("screen_height")
+  sessionId     String?  @map("session_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([sessionId])
+  @@index([ipAddress])
+  @@index([pagePath])
+  @@map("visitor_logs")
+}
+
+// ─── Daily Analytics (Aggregated daily statistics) ──────────────────────────────
+model DailyAnalytics {
+  id                   String   @id @default(uuid())
+  date                 DateTime @unique @map("date") @db.Date
+  totalVisitors        Int      @default(0) @map("total_visitors")
+  uniqueVisitors       Int      @default(0) @map("unique_visitors")
+  totalPageviews       Int      @default(0) @map("total_pageviews")
+  bounceRate           Decimal  @default(0) @map("bounce_rate") @db.Decimal(5, 2)
+  avgSessionDuration   Decimal  @default(0) @map("avg_session_duration") @db.Decimal(8, 2)
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("daily_analytics")
+}
+
+// ─── Popular Pages (Most viewed pages) ─────────────────────────────────────────
+model PopularPage {
+  id             String   @id @default(uuid())
+  pagePath       String   @unique @map("page_path")
+  pageTitle      String?  @map("page_title")
+  totalViews     Int      @default(0) @map("total_views")
+  uniqueViews    Int      @default(0) @map("unique_views")
+  avgDuration    Decimal  @default(0) @map("avg_duration") @db.Decimal(8, 2)
+  bounceRate     Decimal  @default(0) @map("bounce_rate") @db.Decimal(5, 2)
+  lastViewed     DateTime? @map("last_viewed")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([pagePath])
+  @@map("popular_pages")
+}
+
+// ─── Device Statistics ────────────────────────────────────────────────────────
+model DeviceStatistics {
+  id         String   @id @default(uuid())
+  date       DateTime @map("date") @db.Date
+  deviceType String   @map("device_type")
+  count      Int      @default(0)
+  percentage Decimal  @default(0) @db.Decimal(5, 2)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([date, deviceType])
+  @@index([date])
+  @@index([deviceType])
+  @@map("device_statistics")
+}
+
+// ─── Browser Statistics ───────────────────────────────────────────────────────
+model BrowserStatistics {
+  id         String   @id @default(uuid())
+  date       DateTime @map("date") @db.Date
+  browser    String
+  count      Int      @default(0)
+  percentage Decimal  @default(0) @db.Decimal(5, 2)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([date, browser])
+  @@index([date])
+  @@index([browser])
+  @@map("browser_statistics")
+}
+
+// ─── Operating System Statistics ──────────────────────────────────────────────
+model OSStatistics {
+  id                String   @id @default(uuid())
+  date              DateTime @map("date") @db.Date
+  operatingSystem   String   @map("operating_system")
+  count             Int      @default(0)
+  percentage        Decimal  @default(0) @db.Decimal(5, 2)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([date, operatingSystem])
+  @@index([date])
+  @@map("os_statistics")
+}
+
+// ─── Referrer Statistics ──────────────────────────────────────────────────────
+model ReferrerStatistics {
+  id             String   @id @default(uuid())
+  date           DateTime @map("date") @db.Date
+  referrer       String
+  referrerType   String   @map("referrer_type")
+  count          Int      @default(0)
+  percentage     Decimal  @default(0) @db.Decimal(5, 2)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@unique([date, referrer])
+  @@index([date])
+  @@map("referrer_statistics")
+}
+
+// ─── Visitor Hourly Heatmap ───────────────────────────────────────────────────
+model VisitorHourlyHeatmap {
+  id           String   @id @default(uuid())
+  date         DateTime @map("date") @db.Date
+  hour         Int
+  dayOfWeek    Int      @map("day_of_week")
+  visitorCount Int      @default(0) @map("visitor_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([date, hour, dayOfWeek])
+  @@index([date])
+  @@index([hour])
+  @@map("visitor_hourly_heatmap")
+}
+
 // ─── Finance Bank Imports (Header) ────────────────────────────────────────────
 model FinanceBankImport {
   id              String   @id @default(uuid())

@@ -26,6 +26,8 @@ const heroBannerRoutes = require('./routes/hero-banner.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const financeRoutes = require('./routes/finance.routes');
 const divisiRoutes = require('./routes/divisi.routes');
+const analyticsRoutes = require('./routes/analytics');
+const { visitorTrackingMiddleware } = require('./middleware/analytics.middleware');
 const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
@@ -57,6 +59,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ─── Visitor Tracking Middleware ──────────────────────────────────────────────
+app.use(visitorTrackingMiddleware);
 
 // ─── Swagger UI (development) ─────────────────────────────────────────────────
 app.use(
@@ -95,6 +100,7 @@ app.use('/api/hero-banner', heroBannerRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/divisi', divisiRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

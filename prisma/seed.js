@@ -30,7 +30,7 @@ async function main() {
 
   // ─── Default Role Permissions ─────────────────────────────────────────────
   const allMenus = [
-    'admin-dashboard', 'admin-profil', 'admin-kajian', 'admin-streaming',
+    'admin-dashboard', 'admin-analytics', 'admin-profil', 'admin-kajian', 'admin-streaming',
     'admin-galeri', 'admin-sosial', 'admin-mustahik', 'admin-pendidikan',
     'admin-usaha', 'admin-artikel', 'admin-donasi', 'admin-pesan',
     'admin-setting', 'admin-users', 'admin-qurban', 'admin-finance', 'admin-divisi',
