@@ -69,6 +69,11 @@ router.delete('/accounts/:id', authMiddleware, adminOnly, financeController.dele
 // ─── TRANSACTIONS ──────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
 
+
+// Export Excel/PDF Transaksi Keuangan
+router.get('/transactions/export/excel', authMiddleware, adminOnly, financeController.exportTransactionsExcel);
+router.get('/transactions/export/pdf', authMiddleware, adminOnly, financeController.exportTransactionsPDF);
+
 router.get('/transactions', authMiddleware, adminOnly, financeController.getAllTransactions);
 router.get('/transactions/:id', authMiddleware, adminOnly, financeController.getTransactionById);
 

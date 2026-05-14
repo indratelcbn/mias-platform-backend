@@ -217,11 +217,29 @@ const getAllTransactions = async ({
   }
 
   if (search) {
-    where.OR = [
-      { description: { contains: search, mode: 'insensitive' } },
+    const or = [
+      { transactionCode: { contains: search, mode: 'insensitive' } },
+      { programId: { contains: search, mode: 'insensitive' } },
       { programName: { contains: search, mode: 'insensitive' } },
       { category: { contains: search, mode: 'insensitive' } },
+      { description: { contains: search, mode: 'insensitive' } },
+      { notes: { contains: search, mode: 'insensitive' } },
+      { createdBy: { contains: search, mode: 'insensitive' } },
+      { account: { name: { contains: search, mode: 'insensitive' } } },
     ];
+    // Only add numeric search if valid
+    const num = Number(search);
+    if (!isNaN(num)) {
+      or.push({ amount: { equals: num } });
+      or.push({ uniqueCode: { equals: num } });
+      or.push({ actualAmount: { equals: num } });
+    }
+    // Only add enum search if valid
+    const programTypeEnums = ['INFAQ', 'WAKAF'];
+    if (programTypeEnums.includes(search)) {
+      or.push({ programType: { equals: search } });
+    }
+    where.OR = or;
   }
 
   const [data, total] = await Promise.all([

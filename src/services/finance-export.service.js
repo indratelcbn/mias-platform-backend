@@ -1,3 +1,103 @@
+// Mapping label divisi
+const divisiLabelMap = {
+  SOSIAL: 'Sosial',
+  PENDIDIKAN: 'Pendidikan',
+  USAHA: 'Usaha',
+  MULTIMEDIA: 'Multimedia',
+  OPERASIONAL: 'Operasional dan Dakwah',
+  WAKAF: 'Wakaf',
+};
+
+const getDivisiLabel = (divisi, nama) => {
+  if (nama) return nama;
+  return divisiLabelMap[divisi] || divisi;
+};
+// Export all transactions as Excel
+const generateTransactionsExcel = async (transactions) => {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'MIAS - Masjid Imam Asy Syafi\'i';
+  workbook.created = new Date();
+  const ws = workbook.addWorksheet('Transaksi Keuangan');
+  ws.columns = [
+    { header: 'Tanggal', key: 'transactionDate', width: 14 },
+    { header: 'Kode Transaksi', key: 'transactionCode', width: 18 },
+    { header: 'Akun', key: 'account', width: 24 },
+    { header: 'Tipe', key: 'type', width: 10 },
+    { header: 'Jumlah', key: 'amount', width: 18 },
+    { header: 'Program', key: 'programName', width: 24 },
+    { header: 'Kategori', key: 'category', width: 18 },
+    { header: 'Deskripsi', key: 'description', width: 40 },
+  ];
+  transactions.forEach((t) => {
+    ws.addRow({
+      transactionDate: formatDateShort(t.transactionDate),
+      transactionCode: t.transactionCode || '-',
+      account: t.account?.name || '-',
+      type: t.type === 'IN' ? 'Masuk' : 'Keluar',
+      amount: Number(t.amount) || 0,
+      programName: t.programName || '-',
+      category: t.category || '-',
+      description: t.description || '-',
+    });
+  });
+  ws.getColumn('E').numFmt = '"Rp" #,##0';
+  return workbook.xlsx.writeBuffer();
+};
+
+// Export all transactions as PDF
+const generateTransactionsPDF = (transactions) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40 });
+      const chunks = [];
+      doc.on('data', (c) => chunks.push(c));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      doc.fontSize(16).font('Helvetica-Bold').text('Transaksi Keuangan', { align: 'center' });
+      doc.fontSize(10).fillColor('#666').text(`Dicetak: ${formatDateShort(new Date())}`, { align: 'center' });
+      doc.fillColor('#000');
+      doc.moveTo(40, doc.y + 5).lineTo(555, doc.y + 5).strokeColor('#999').stroke();
+      doc.moveDown(1);
+
+      // Table
+      drawTable(doc, {
+        headers: ['Tanggal', 'Kode', 'Akun', 'Tipe', 'Jumlah', 'Program', 'Kategori', 'Deskripsi'],
+        widths: [60, 100, 80, 35, 60, 160, 50, 150],
+        align: ['left', 'left', 'left', 'center', 'right', 'left', 'left', 'left'],
+        rows: transactions.map((t) => [
+          formatDateShort(t.transactionDate),
+          t.transactionCode || '-',
+          t.account?.name || '-',
+          t.type === 'IN' ? 'Masuk' : 'Keluar',
+          formatCurrency(t.amount),
+          t.programName || '-',
+          t.category || '-',
+          t.description || '-',
+        ]),
+      });
+
+      // Footer
+      const range = doc.bufferedPageRange();
+      for (let i = 0; i < range.count; i += 1) {
+        doc.switchToPage(range.start + i);
+        const bottom = doc.page.height - 30;
+        doc.fontSize(8).fillColor('#888')
+          .text(
+            `Laporan dibuat oleh sistem MIAS  |  Halaman ${i + 1} dari ${range.count}`,
+            40,
+            bottom,
+            { align: 'center', width: doc.page.width - 80 }
+          );
+        doc.fillColor('#000');
+      }
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 
@@ -267,7 +367,7 @@ const styleHeaderRow = (row) => {
 const generateMonthlyReportPDF = (report) => {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ size: 'A4', margin: 40 });
+      const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40 });
       const chunks = [];
       doc.on('data', (c) => chunks.push(c));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -364,7 +464,7 @@ const generateMonthlyReportPDF = (report) => {
           widths: [110, 40, 110, 110, 100],
           align: ['left', 'center', 'right', 'right', 'right'],
           rows: divisiBreakdown.map((d) => [
-            d.divisi,
+            getDivisiLabel(d.divisi, d.divisiNama),
             String(d.count || 0),
             formatCurrency(d.totalIn),
             formatCurrency(d.totalOut),
@@ -531,4 +631,6 @@ const drawTable = (doc, { headers, widths, align, rows, totalRow }) => {
 module.exports = {
   generateMonthlyReportExcel,
   generateMonthlyReportPDF,
+  generateTransactionsExcel,
+  generateTransactionsPDF,
 };

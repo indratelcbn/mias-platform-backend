@@ -1,3 +1,32 @@
+// Export all transactions as Excel
+const exportTransactionsExcel = async (req, res, next) => {
+  try {
+    // Ambil semua transaksi sesuai filter (tanpa paginasi)
+    const { data } = await financeService.getAllTransactions({ ...req.query, page: 1, limit: 10000 });
+    const buffer = await financeExportService.generateTransactionsExcel(data);
+    const filename = `Transaksi-Keuangan.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(Buffer.from(buffer));
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Export all transactions as PDF
+const exportTransactionsPDF = async (req, res, next) => {
+  try {
+    // Ambil semua transaksi sesuai filter (tanpa paginasi)
+    const { data } = await financeService.getAllTransactions({ ...req.query, page: 1, limit: 10000 });
+    const buffer = await financeExportService.generateTransactionsPDF(data);
+    const filename = `Transaksi-Keuangan.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (err) {
+    next(err);
+  }
+};
 const financeService = require('../services/finance.service');
 const financeProgramService = require('../services/finance-program.service');
 const financeBankService = require('../services/finance-bank.service');
@@ -418,6 +447,10 @@ module.exports = {
   createTransaction,
   updateTransaction,
   deleteTransaction,
+
+  // Export Transactions
+  exportTransactionsExcel,
+  exportTransactionsPDF,
 
   // Dashboard & Reports
   getDashboardSummary,
