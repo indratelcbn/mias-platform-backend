@@ -617,6 +617,7 @@ const confirmBankImport = async (importId, userId = null) => {
   }
 
   const results = [];
+  const skipped = [];
   for (const recon of pendingRecons) {
     const bankTx = recon.bankImportDetail;
     if (!bankTx) continue;
@@ -659,23 +660,31 @@ const confirmBankImport = async (importId, userId = null) => {
           createdBy: userId ? String(userId) : 'SYSTEM',
         },
       });
+      await prisma.financeReconciliation.update({
+        where: { id: recon.id },
+        data: {
+          transactionId: transaction.id,
+          status: 'MATCHED',
+          matchedBy: userId ? String(userId) : 'SYSTEM',
+          matchedAt: new Date(),
+          notes: 'Confirmed import and transaction created',
+        },
+      });
+      results.push({ reconciliationId: recon.id, transactionId: transaction.id });
+    } else {
+      // Duplicate transactionCode, skip and record
+      skipped.push({ reconciliationId: recon.id, transactionCode: bankTx.transactionId });
     }
-
-    await prisma.financeReconciliation.update({
-      where: { id: recon.id },
-      data: {
-        transactionId: transaction.id,
-        status: 'MATCHED',
-        matchedBy: userId ? String(userId) : 'SYSTEM',
-        matchedAt: new Date(),
-        notes: 'Confirmed import and transaction created',
-      },
-    });
-
-    results.push({ reconciliationId: recon.id, transactionId: transaction.id });
   }
 
-  return { importId, processed: pendingRecons.length, created: results.length };
+  return {
+    importId,
+    processed: pendingRecons.length,
+    created: results.length,
+    skippedCount: skipped.length,
+    skippedTransactionCodes: skipped.map(s => s.transactionCode),
+    skippedDetails: skipped, // for more detail if needed
+  };
 };
 
 const getUnmatchedBankTransactions = async (accountId) => {

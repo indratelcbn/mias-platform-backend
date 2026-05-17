@@ -227,6 +227,18 @@ const manualMatch = async (bankImportDetailId, transactionId, userId = null) => 
   }
 
   if (!internalTx.transactionCode && bankTx.transactionId) {
+    // Cek apakah transactionCode sudah ada di transaksi lain
+    const duplicate = await prisma.financeTransaction.findFirst({
+      where: {
+        transactionCode: bankTx.transactionId,
+        id: { not: internalTx.id },
+      },
+    });
+    if (duplicate) {
+      const err = new Error('Kode transaksi sudah digunakan pada transaksi lain. Tidak boleh duplikat.');
+      err.statusCode = 400;
+      throw err;
+    }
     await prisma.financeTransaction.update({
       where: { id: internalTx.id },
       data: { transactionCode: bankTx.transactionId },
@@ -568,6 +580,17 @@ const assignProgram = async (reconciliationId, payload = {}, userId = null) => {
   const isCredit = creditAmt > 0;
   const amount = isCredit ? creditAmt : debitAmt;
   const type = isCredit ? 'IN' : 'OUT';
+
+  // CEK DUPLIKASI transactionCode
+  const duplicate = await prisma.financeTransaction.findFirst({
+    where: { transactionCode: bankTx.transactionId },
+  });
+  if (duplicate) {
+    // Jangan buat transaksi, tetap di daftar rekonsiliasi
+    const err = new Error('Kode transaksi sudah digunakan pada transaksi lain. Silakan cek daftar transaksi.');
+    err.statusCode = 400;
+    throw err;
+  }
 
   const parsed = await financeProgramService.parseAmountWithUniqueCode(amount);
 
