@@ -1,9 +1,29 @@
-const streamingService = require('../services/streaming.service');
 
+const streamingService = require('../services/streaming.service');
+const { getLiveVideo } = require('../services/youtube.service');
+
+
+// Endpoint: GET /api/streaming/active
+// Cek status live streaming langsung ke YouTube API
 const getActive = async (req, res, next) => {
   try {
-    const data = await streamingService.getActive();
-    res.json({ success: true, data });
+    const live = await getLiveVideo();
+    if (!live) {
+      return res.json({ success: true, data: null });
+    }
+    // Format respons agar kompatibel dengan frontend
+    res.json({
+      success: true,
+      data: {
+        judul: live.title,
+        url: `https://www.youtube.com/watch?v=${live.videoId}`,
+        deskripsi: '',
+        isLive: true,
+        thumbnail: live.thumbnail,
+        embedUrl: live.embedUrl,
+        startedAt: null,
+      }
+    });
   } catch (err) {
     next(err);
   }
