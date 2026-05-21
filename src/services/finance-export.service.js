@@ -20,6 +20,7 @@ const generateTransactionsExcel = async (transactions) => {
   const ws = workbook.addWorksheet('Transaksi Keuangan');
   ws.columns = [
     { header: 'Tanggal', key: 'transactionDate', width: 14 },
+    { header: 'Waktu', key: 'waktu', width: 10 },
     { header: 'Kode Transaksi', key: 'transactionCode', width: 18 },
     { header: 'Akun', key: 'account', width: 24 },
     { header: 'Tipe', key: 'type', width: 10 },
@@ -31,6 +32,7 @@ const generateTransactionsExcel = async (transactions) => {
   transactions.forEach((t) => {
     ws.addRow({
       transactionDate: formatDateShort(t.transactionDate),
+      waktu: t.Waktu || t.waktu || '-',
       transactionCode: t.transactionCode || '-',
       account: t.account?.name || '-',
       type: t.type === 'IN' ? 'Masuk' : 'Keluar',
@@ -62,11 +64,12 @@ const generateTransactionsPDF = (transactions) => {
 
       // Table
       drawTable(doc, {
-        headers: ['Tanggal', 'Kode', 'Akun', 'Tipe', 'Jumlah', 'Program', 'Kategori', 'Deskripsi'],
-        widths: [60, 100, 80, 35, 60, 160, 50, 150],
-        align: ['left', 'left', 'left', 'center', 'right', 'left', 'left', 'left'],
+        headers: ['Tanggal', 'Waktu', 'Kode', 'Akun', 'Tipe', 'Jumlah', 'Program', 'Kategori', 'Deskripsi'],
+        widths: [60, 40, 100, 80, 35, 60, 120, 50, 150],
+        align: ['left', 'center', 'left', 'left', 'center', 'right', 'left', 'left', 'left'],
         rows: transactions.map((t) => [
           formatDateShort(t.transactionDate),
+          t.Waktu || t.waktu || '-',
           t.transactionCode || '-',
           t.account?.name || '-',
           t.type === 'IN' ? 'Masuk' : 'Keluar',
