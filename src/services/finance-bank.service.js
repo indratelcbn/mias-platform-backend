@@ -298,25 +298,27 @@ const parseDate = (dateStr) => {
 
   const raw = String(dateStr).trim();
 
-  // Try ISO format directly
-  let date = new Date(raw);
-  if (!isNaN(date.getTime())) return date;
+  // Accept only explicit ISO-like input for direct Date parsing
+  if (/^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?$/.test(raw)) {
+    const date = new Date(raw);
+    if (!isNaN(date.getTime())) return date;
+  }
 
-  // Split off optional time portion (separated by space or 'T')
   const [datePart, timePart] = raw.split(/[\sT]+/);
-
-  // Try DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
   const parts = datePart.split(/[/\-.]/);
   if (parts.length === 3) {
     const day = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10) - 1;
     const year = parseInt(parts[2], 10);
 
+    if (Number.isNaN(day) || Number.isNaN(month) || Number.isNaN(year)) {
+      return null;
+    }
+
     let hour = 0;
     let minute = 0;
     let second = 0;
     if (timePart) {
-      // Time can use ':' or '.' as separator (BSI uses '.')
       const timeParts = timePart.split(/[:.]/);
       if (timeParts.length >= 2) {
         hour = parseInt(timeParts[0], 10) || 0;
@@ -325,7 +327,12 @@ const parseDate = (dateStr) => {
       }
     }
 
-    date = new Date(year, month, day, hour, minute, second);
+    if (!timePart) {
+      const utcNoon = new Date(Date.UTC(year, month, day, 12, 0, 0));
+      if (!isNaN(utcNoon.getTime())) return utcNoon;
+    }
+
+    const date = new Date(year, month, day, hour, minute, second);
     if (!isNaN(date.getTime())) return date;
   }
 
