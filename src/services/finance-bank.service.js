@@ -118,9 +118,13 @@ const normalizeBankData = (row, bankFormat = 'STANDARD') => {
         const rawCredit = normalizeField(row['Credit'] || row['Kredit'] || row['credit']);
         const programCodeRaw = normalizeField(row['Kode'] || row['kode'] || row['Code'] || row['code'] || '');
 
+        const rawDateStr = row['Date'] || row['Tanggal'] || row['transaction_date'];
+        const parsedDate = parseDate(rawDateStr);
+        const waktu = parsedDate ? parsedDate.toTimeString().slice(0,8) : null;
         normalized = {
           transactionId: normalizeField(row['Transaction ID'] || row['transaction_id'] || row['Nomor Referensi'] || ''),
-          transactionDate: parseDate(row['Date'] || row['Tanggal'] || row['transaction_date']),
+          transactionDate: parsedDate,
+          waktu,
           description: row['Description'] || row['Keterangan'] || row['description'] || '',
           rawDebit,
           rawCredit,
@@ -137,9 +141,13 @@ const normalizeBankData = (row, bankFormat = 'STANDARD') => {
       const rawCredit = normalizeField(row['MUTASI KREDIT'] || row['KREDIT']);
       const programCodeRaw = normalizeField(row['Kode'] || row['kode'] || row['Code'] || row['code'] || '');
 
+      const rawDateStr = row['TANGGAL'];
+      const parsedDate = parseDate(rawDateStr);
+      const waktu = parsedDate ? parsedDate.toTimeString().slice(0,8) : null;
       normalized = {
         transactionId: normalizeField(row['NOMOR REFERENSI'] || row['NO REFERENSI'] || ''),
-        transactionDate: parseDate(row['TANGGAL']),
+        transactionDate: parsedDate,
+        waktu,
         description: row['KETERANGAN'] || '',
         rawDebit,
         rawCredit,
@@ -156,9 +164,13 @@ const normalizeBankData = (row, bankFormat = 'STANDARD') => {
       const rawCredit = normalizeField(row['KREDIT']);
       const programCodeRaw = normalizeField(row['Kode'] || row['kode'] || row['Code'] || row['code'] || '');
 
+      const rawDateStr = row['TGL TRANSAKSI'];
+      const parsedDate = parseDate(rawDateStr);
+      const waktu = parsedDate ? parsedDate.toTimeString().slice(0,8) : null;
       normalized = {
         transactionId: normalizeField(row['TXN ID'] || row['NO REFERENSI'] || ''),
-        transactionDate: parseDate(row['TGL TRANSAKSI']),
+        transactionDate: parsedDate,
+        waktu,
         description: row['KETERANGAN'] || '',
         rawDebit,
         rawCredit,
@@ -175,9 +187,13 @@ const normalizeBankData = (row, bankFormat = 'STANDARD') => {
       const rawCredit = normalizeField(row['CREDIT'] || row['KREDIT']);
       const programCodeRaw = normalizeField(row['Kode'] || row['kode'] || row['Code'] || row['code'] || '');
 
+      const rawDateStr = row['DATE'] || row['TANGGAL'];
+      const parsedDate = parseDate(rawDateStr);
+      const waktu = parsedDate ? parsedDate.toTimeString().slice(0,8) : null;
       normalized = {
         transactionId: normalizeField(row['REFERENCE'] || row['NO REFERENSI'] || ''),
-        transactionDate: parseDate(row['DATE'] || row['TANGGAL']),
+        transactionDate: parsedDate,
+        waktu,
         description: row['DESCRIPTION'] || row['KETERANGAN'] || '',
         rawDebit,
         rawCredit,
@@ -194,9 +210,13 @@ const normalizeBankData = (row, bankFormat = 'STANDARD') => {
       const rawCredit = normalizeField(row['KREDIT']);
       const programCodeRaw = normalizeField(row['Kode'] || row['kode'] || row['Code'] || row['code'] || '');
 
+      const rawDateStr = row['TANGGAL'];
+      const parsedDate = parseDate(rawDateStr);
+      const waktu = parsedDate ? parsedDate.toTimeString().slice(0,8) : null;
       normalized = {
         transactionId: row['NO REFERENSI'] || '',
-        transactionDate: parseDate(row['TANGGAL']),
+        transactionDate: parsedDate,
+        waktu,
         description: row['KETERANGAN'] || '',
         rawDebit,
         rawCredit,
@@ -232,26 +252,28 @@ const normalizeBankData = (row, bankFormat = 'STANDARD') => {
         .replace(/[\r\n]+/g, ' ')
         .trim();
 
-        const rawDebit = normalizeField(get('Debet', 'Debit'));
-        const rawCredit = normalizeField(get('Kredit', 'Credit'));
-        const programCodeRaw = normalizeField(String(get('Kode', 'kode', 'Code', 'code') || ''));
+      const parsedDate = parseDate(rawDate);
+      const waktu = parsedDate ? parsedDate.toTimeString().slice(0,8) : null;
 
-        normalized = {
-          transactionId: String(
-            get('No.Referensi', 'No Referensi', 'Nomor Referensi', 'Reference')
-          ).trim(),
-          transactionDate: parseDate(rawDate),
-          description: String(get('Deskripsi', 'Keterangan', 'Description') || '')
-            .replace(/[\r\n]+/g, ' ')
-            .trim(),
-          rawDebit,
-          rawCredit,
-          debit: parseAmount(rawDebit),
-          credit: parseAmount(rawCredit),
-          balance: parseAmount(get('Saldo Riil', 'Saldo', 'Balance')),
-          programCode: programCodeRaw,
-          programCodeCandidate: programCodeRaw || extractLastThreeDigitsFromRaw(rawCredit || rawDebit),
-        };
+      const rawDebit = normalizeField(get('Debet', 'Debit'));
+      const rawCredit = normalizeField(get('Kredit', 'Credit'));
+      const programCodeRaw = normalizeField(String(get('Kode', 'kode', 'Code', 'code') || ''));
+
+      normalized = {
+        transactionId: String(
+          get('No.Referensi', 'No Referensi', 'Nomor Referensi', 'Reference')
+        ).trim(),
+        transactionDate: parsedDate,
+        waktu,
+        description: String(get('Deskripsi', 'Keterangan', 'Description') || '').trim(),
+        rawDebit,
+        rawCredit,
+        debit: parseAmount(rawDebit),
+        credit: parseAmount(rawCredit),
+        balance: parseAmount(get('Saldo Riil', 'Saldo', 'Balance')),
+        programCode: programCodeRaw,
+        programCodeCandidate: programCodeRaw || extractLastThreeDigitsFromRaw(rawCredit || rawDebit),
+      };
     }
 
     // Validate required fields

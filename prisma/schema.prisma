@@ -576,6 +576,7 @@ model FinanceTransaction {
   description     String?
   notes           String?
   attachment      String?          // Bukti transfer
+  Waktu           String?          @map("Waktu") // Jam transaksi (HH:mm:ss)
   createdBy       String?          @map("created_by")
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")

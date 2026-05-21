@@ -255,8 +255,13 @@ const getAllTransactions = async ({
     prisma.financeTransaction.count({ where }),
   ]);
 
+  const normalizedData = data.map((tx) => ({
+    ...tx,
+    Waktu: tx.Waktu || (tx.transactionDate ? new Date(tx.transactionDate).toTimeString().slice(0,8) : null),
+  }));
+
   return {
-    data,
+    data: normalizedData,
     meta: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) },
   };
 };
@@ -325,6 +330,7 @@ const createTransaction = async (data) => {
       notes: data.notes || null,
       attachment: data.attachment || null,
       createdBy: data.createdBy || null,
+      Waktu: data.waktu || (data.transactionDate ? new Date(data.transactionDate).toTimeString().slice(0,8) : null),
     },
     include: {
       account: true,
@@ -377,6 +383,7 @@ const updateTransaction = async (id, data) => {
       description: data.description,
       notes: data.notes,
       attachment: data.attachment,
+      Waktu: data.waktu || (data.transactionDate ? new Date(data.transactionDate).toTimeString().slice(0,8) : undefined),
     },
     include: {
       account: true,

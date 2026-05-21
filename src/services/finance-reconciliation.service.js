@@ -147,6 +147,7 @@ const autoMatch = async (accountId, options = {}) => {
           data: {
             accountId,
             transactionDate: bankTx.transactionDate,
+            Waktu: bankTx.waktu || (bankTx.transactionDate ? bankTx.transactionDate.toTimeString().slice(0,8) : null),
             type,
             amount,
             transactionCode: bankTx.transactionId,
@@ -598,6 +599,7 @@ const assignProgram = async (reconciliationId, payload = {}, userId = null) => {
     data: {
       accountId: bankTx.accountId,
       transactionDate: bankTx.transactionDate,
+      Waktu: bankTx.waktu || (bankTx.transactionDate ? bankTx.transactionDate.toTimeString().slice(0,8) : null),
       type,
       amount,
       transactionCode: bankTx.transactionId,
