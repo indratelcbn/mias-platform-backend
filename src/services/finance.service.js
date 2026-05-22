@@ -212,8 +212,18 @@ const getAllTransactions = async ({
 
   if (startDate || endDate) {
     where.transactionDate = {};
-    if (startDate) where.transactionDate.gte = new Date(startDate);
-    if (endDate) where.transactionDate.lte = new Date(endDate);
+    if (startDate) {
+      // Mulai dari awal hari
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      where.transactionDate.gte = start;
+    }
+    if (endDate) {
+      // Sampai akhir hari
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      where.transactionDate.lte = end;
+    }
   }
 
   if (search) {
