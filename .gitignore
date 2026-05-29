@@ -1,3 +1,5 @@
+# Ignore uploaded thumbnails
+uploads/thumbnails/
 node_modules/
 
 .env
