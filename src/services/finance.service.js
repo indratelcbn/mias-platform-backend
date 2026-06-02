@@ -716,8 +716,47 @@ const getMonthlyReport = async ({ year, month, accountId } = {}) => {
   for (const p of allInfaq) programDivisiMap[normalizeProgramKey('INFAQ', p.id)] = p.divisi || null;
   for (const p of allWakaf) programDivisiMap[normalizeProgramKey('WAKAF', p.id)] = p.divisi || null;
 
+  // Initialize divisi accumulator with opening balance
   const divisiAcc = {};
-  for (const d of activeDivisi) divisiAcc[d.id] = { divisi: d.id, divisiNama: d.nama, totalIn: 0, totalOut: 0, count: 0 };
+  for (const d of activeDivisi) {
+    divisiAcc[d.id] = { 
+      divisi: d.id, 
+      divisiNama: d.nama, 
+      totalIn: 0, 
+      totalOut: 0, 
+      count: 0,
+      openingBalance: 0,
+      closingBalance: 0,
+    };
+  }
+
+  // Calculate opening balance for each divisi (from all previous transactions)
+  const prevDivisiTransactions = await prisma.financeTransaction.findMany({
+    where: {
+      transactionDate: { lt: startDate },
+      programId: { not: null },
+    },
+    select: { type: true, amount: true, programType: true, programId: true },
+  });
+
+  for (const t of prevDivisiTransactions) {
+    if (!t.programId) continue;
+    const divisi = programDivisiMap[normalizeProgramKey(t.programType, t.programId)];
+    let divisiKey = null;
+    if (divisi && typeof divisi === 'object') divisiKey = divisi.id;
+    else if (typeof divisi === 'string') divisiKey = divisi;
+
+    if (!divisiKey && t.programId === '000') {
+      const operational = activeDivisi.find((d) => d.nama === 'Operasional dan Dakwah');
+      divisiKey = operational?.id || null;
+    }
+
+    if (!divisiKey || !divisiAcc[divisiKey]) continue;
+    if (t.type === 'IN') divisiAcc[divisiKey].openingBalance += Number(t.amount);
+    else divisiAcc[divisiKey].openingBalance -= Number(t.amount);
+  }
+
+  // Calculate current period transactions for each divisi
   for (const t of transactions) {
     if (!t.programId) continue;
     const divisi = programDivisiMap[normalizeProgramKey(t.programType, t.programId)];
@@ -735,6 +774,13 @@ const getMonthlyReport = async ({ year, month, accountId } = {}) => {
     else divisiAcc[divisiKey].totalOut += Number(t.amount);
     divisiAcc[divisiKey].count += 1;
   }
+
+  // Calculate closing balance for each divisi
+  for (const divisiId in divisiAcc) {
+    const d = divisiAcc[divisiId];
+    d.closingBalance = d.openingBalance + d.totalIn - d.totalOut;
+  }
+
   const divisiBreakdown = Object.values(divisiAcc);
 
   return {

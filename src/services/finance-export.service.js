@@ -250,22 +250,24 @@ const generateMonthlyReportExcel = async (report) => {
   const wsDivisi = workbook.addWorksheet('Per Divisi');
   wsDivisi.columns = [
     { header: 'Divisi', key: 'divisi', width: 18 },
+    { header: 'Saldo Awal', key: 'openingBalance', width: 18 },
     { header: 'Transaksi', key: 'count', width: 12 },
     { header: 'Pemasukan', key: 'totalIn', width: 18 },
     { header: 'Pengeluaran', key: 'totalOut', width: 18 },
-    { header: 'Saldo Bersih', key: 'net', width: 18 },
+    { header: 'Saldo Akhir', key: 'closingBalance', width: 18 },
   ];
   styleHeaderRow(wsDivisi.getRow(1));
   (report.divisiBreakdown || []).forEach((d) => {
     wsDivisi.addRow({
-      divisi: d.divisi,
+      divisi: d.divisiNama || d.divisi,
+      openingBalance: Number(d.openingBalance) || 0,
       count: d.count,
       totalIn: Number(d.totalIn) || 0,
       totalOut: Number(d.totalOut) || 0,
-      net: (Number(d.totalIn) || 0) - (Number(d.totalOut) || 0),
+      closingBalance: Number(d.closingBalance) || 0,
     });
   });
-  ['C', 'D', 'E'].forEach((col) => {
+  ['B', 'D', 'E', 'F'].forEach((col) => {
     wsDivisi.getColumn(col).numFmt = '"Rp" #,##0';
   });
 
@@ -463,15 +465,16 @@ const generateMonthlyReportPDF = (report) => {
         doc.fontSize(12).font('Helvetica-Bold').text('RINCIAN PER DIVISI');
         doc.moveDown(0.3);
         drawTable(doc, {
-          headers: ['Divisi', 'Trx', 'Pemasukan', 'Pengeluaran', 'Saldo Bersih'],
-          widths: [110, 40, 110, 110, 100],
-          align: ['left', 'center', 'right', 'right', 'right'],
+          headers: ['Divisi', 'Saldo Awal', 'Trx', 'Pemasukan', 'Pengeluaran', 'Saldo Akhir'],
+          widths: [100, 85, 35, 85, 85, 85],
+          align: ['left', 'right', 'center', 'right', 'right', 'right'],
           rows: divisiBreakdown.map((d) => [
             getDivisiLabel(d.divisi, d.divisiNama),
+            formatCurrency(d.openingBalance || 0),
             String(d.count || 0),
             formatCurrency(d.totalIn),
             formatCurrency(d.totalOut),
-            formatCurrency((Number(d.totalIn) || 0) - (Number(d.totalOut) || 0)),
+            formatCurrency(d.closingBalance || 0),
           ]),
         });
         doc.moveDown(0.8);

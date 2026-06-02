@@ -261,8 +261,30 @@ model Divisi {
 
   programDonasi ProgramDonasi[]
   programWakaf  ProgramWakaf[]
+  balances      DivisiBalance[]
 
   @@map("divisi")
+}
+
+// ─── Divisi Balance (Saldo Divisi per Bulan) ──────────────────────────────────
+model DivisiBalance {
+  id             String   @id @default(uuid())
+  divisiId       String   @map("divisi_id")
+  year           Int
+  month          Int
+  openingBalance Decimal  @default(0) @db.Decimal(15, 2) @map("opening_balance")
+  totalIn        Decimal  @default(0) @db.Decimal(15, 2) @map("total_in")
+  totalOut       Decimal  @default(0) @db.Decimal(15, 2) @map("total_out")
+  closingBalance Decimal  @default(0) @db.Decimal(15, 2) @map("closing_balance")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  divisi         Divisi   @relation(fields: [divisiId], references: [id], onDelete: Cascade)
+
+  @@unique([divisiId, year, month])
+  @@index([divisiId])
+  @@index([year, month])
+  @@map("divisi_balance")
 }
 
 // ─── Program Infaq ────────────────────────────────────────────────────────────
