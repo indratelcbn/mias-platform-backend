@@ -277,10 +277,11 @@ const generateMonthlyReportExcel = async (report) => {
     { header: 'Program', key: 'programName', width: 32 },
     { header: 'Nama Akun', key: 'accountName', width: 24 },
     { header: 'Tipe', key: 'programType', width: 12 },
+    { header: 'Saldo Awal', key: 'openingBalance', width: 18 },
     { header: 'Transaksi', key: 'count', width: 12 },
     { header: 'Pemasukan', key: 'totalIn', width: 18 },
     { header: 'Pengeluaran', key: 'totalOut', width: 18 },
-    { header: 'Saldo Bersih', key: 'net', width: 18 },
+    { header: 'Saldo Akhir', key: 'closingBalance', width: 18 },
   ];
   styleHeaderRow(wsProgram.getRow(1));
   (report.programBreakdown || []).forEach((p) => {
@@ -288,13 +289,14 @@ const generateMonthlyReportExcel = async (report) => {
       programName: p.programName,
       accountName: p.accountName || '-',
       programType: p.programType,
+      openingBalance: Number(p.openingBalance) || 0,
       count: p.count,
       totalIn: Number(p.totalIn) || 0,
       totalOut: Number(p.totalOut) || 0,
-      net: (Number(p.totalIn) || 0) - (Number(p.totalOut) || 0),
+      closingBalance: Number(p.closingBalance) || 0,
     });
   });
-  ['D', 'E', 'F'].forEach((col) => {
+  ['D', 'F', 'G', 'H'].forEach((col) => {
     wsProgram.getColumn(col).numFmt = '"Rp" #,##0';
   });
 
@@ -487,16 +489,18 @@ const generateMonthlyReportPDF = (report) => {
         doc.fontSize(12).font('Helvetica-Bold').text('RINCIAN PER PROGRAM');
         doc.moveDown(0.3);
         drawTable(doc, {
-          headers: ['Program', 'Nama Akun', 'Tipe', 'Trx', 'Pemasukan', 'Pengeluaran'],
-          widths: [150, 120, 50, 40, 90, 90],
-          align: ['left', 'left', 'center', 'center', 'right', 'right'],
+          headers: ['Program', 'Akun', 'Tipe', 'Saldo Awal', 'Trx', 'Pemasukan', 'Pengeluaran', 'Saldo Akhir'],
+          widths: [100, 75, 35, 60, 30, 60, 60, 60],
+          align: ['left', 'left', 'center', 'right', 'center', 'right', 'right', 'right'],
           rows: programBreakdown.map((p) => [
             p.programName,
             p.accountName || '-',
             p.programType,
+            formatCurrency(p.openingBalance || 0),
             String(p.count || 0),
             formatCurrency(p.totalIn),
             formatCurrency(p.totalOut),
+            formatCurrency(p.closingBalance || 0),
           ]),
         });
         doc.moveDown(0.8);

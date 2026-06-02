@@ -681,12 +681,25 @@ const getMonthlyReport = async ({ year, month, accountId } = {}) => {
     `${String(programType || '').trim().toUpperCase()}|${String(programId || '').trim()}|${String(accountId || '').trim()}`;
 
   const programMap = {};
-  for (const t of transactions) {
+  
+  // Calculate opening balance for each program (from all previous transactions)
+  const prevProgramTransactions = await prisma.financeTransaction.findMany({
+    where: {
+      transactionDate: { lt: startDate },
+      programId: { not: null },
+    },
+    include: {
+      account: { select: { id: true, name: true } },
+    },
+  });
+
+  for (const t of prevProgramTransactions) {
     if (!t.programId) continue;
     const programType = String(t.programType || '').trim().toUpperCase();
     const programId = String(t.programId || '').trim();
     const accountId = String(t.accountId || '').trim();
     const key = normalizeProgramKey(programType, programId, accountId);
+    
     if (!programMap[key]) {
       programMap[key] = {
         programType,
@@ -697,12 +710,49 @@ const getMonthlyReport = async ({ year, month, accountId } = {}) => {
         totalIn: 0,
         totalOut: 0,
         count: 0,
+        openingBalance: 0,
+        closingBalance: 0,
       };
     }
+    
+    if (t.type === 'IN') programMap[key].openingBalance += Number(t.amount);
+    else programMap[key].openingBalance -= Number(t.amount);
+  }
+
+  // Calculate current period transactions for each program
+  for (const t of transactions) {
+    if (!t.programId) continue;
+    const programType = String(t.programType || '').trim().toUpperCase();
+    const programId = String(t.programId || '').trim();
+    const accountId = String(t.accountId || '').trim();
+    const key = normalizeProgramKey(programType, programId, accountId);
+    
+    if (!programMap[key]) {
+      programMap[key] = {
+        programType,
+        programId,
+        accountId,
+        accountName: t.account?.name?.trim() || 'Unknown',
+        programName: t.programName?.trim() || 'Unknown',
+        totalIn: 0,
+        totalOut: 0,
+        count: 0,
+        openingBalance: 0,
+        closingBalance: 0,
+      };
+    }
+    
     if (t.type === 'IN') programMap[key].totalIn += Number(t.amount);
     else programMap[key].totalOut += Number(t.amount);
     programMap[key].count += 1;
   }
+
+  // Calculate closing balance for each program
+  for (const key in programMap) {
+    const p = programMap[key];
+    p.closingBalance = (p.openingBalance || 0) + p.totalIn - p.totalOut;
+  }
+
   const programBreakdown = Object.values(programMap);
 
   // ─── Breakdown per Divisi ──────────────────────────────────────────────────
