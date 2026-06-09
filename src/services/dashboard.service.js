@@ -103,12 +103,64 @@ const getSummary = async ({ bulan, tahun } = {}) => {
       []
     ),
     safe(
-      prisma.programDonasi.findMany({
-        where: { isActive: true },
-        orderBy: { terkumpul: 'desc' },
-        take: 5,
-        select: { id: true, judul: true, divisi: true, target: true, terkumpul: true },
-      }),
+      (async () => {
+        const [infaqPrograms, wakafPrograms] = await Promise.all([
+          prisma.programDonasi.findMany({
+            where: { isActive: true },
+            orderBy: { terkumpul: 'desc' },
+            take: 3,
+            select: { 
+              id: true, 
+              judul: true, 
+              divisiId: true,
+              target: true, 
+              terkumpul: true,
+              divisi: {
+                select: { id: true, nama: true }
+              }
+            },
+          }),
+          prisma.programWakaf.findMany({
+            where: { isActive: true },
+            orderBy: { terkumpul: 'desc' },
+            take: 2,
+            select: { 
+              id: true, 
+              kegiatan: true, 
+              divisiId: true,
+              target: true, 
+              terkumpul: true,
+              divisi: {
+                select: { id: true, nama: true }
+              }
+            },
+          }),
+        ]);
+
+        const combined = [
+          ...infaqPrograms.map(p => ({
+            id: p.id,
+            judul: p.judul,
+            type: 'INFAQ',
+            divisi: p.divisi?.nama || null,
+            target: p.target,
+            terkumpul: p.terkumpul,
+          })),
+          ...wakafPrograms.map(p => ({
+            id: p.id,
+            judul: p.kegiatan,
+            type: 'WAKAF',
+            divisi: p.divisi?.nama || null,
+            target: p.target,
+            terkumpul: p.terkumpul,
+          })),
+        ];
+
+        // Sort by terkumpul desc and limit to 5
+        return combined
+          .sort((a, b) => (Number(b.terkumpul) || 0) - (Number(a.terkumpul) || 0))
+          .slice(0, 5);
+      })(),
       []
     ),
   ]);
