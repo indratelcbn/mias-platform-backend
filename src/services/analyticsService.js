@@ -149,12 +149,20 @@ class AnalyticsService {
       }
     });
 
-    return Object.entries(merged)
-      .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
-      .map(([date, data]) => ({
-        date,
-        ...data,
-      }));
+    // Fill in missing dates with zeros
+    const result = [];
+    const currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      result.push({
+        date: dateStr,
+        totalVisitors: merged[dateStr]?.totalVisitors || 0,
+        uniqueVisitors: merged[dateStr]?.uniqueVisitors || 0,
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return result;
   }
 
   /**

@@ -67,15 +67,17 @@ class AnalyticsRepository {
    * Get visitors trend by day
    */
   async getVisitorsTrend(startDate, endDate) {
-    const result = await prisma.visitorLog.groupBy({
-      by: ['createdAt'],
+    // Fetch all logs and group manually by date
+    const logs = await prisma.visitorLog.findMany({
       where: {
         createdAt: {
           gte: startDate,
           lte: endDate,
         },
       },
-      _count: true,
+      select: {
+        createdAt: true,
+      },
       orderBy: {
         createdAt: 'asc',
       },
@@ -83,15 +85,17 @@ class AnalyticsRepository {
 
     // Group by date (without time)
     const grouped = {};
-    result.forEach((item) => {
-      const date = new Date(item.createdAt).toISOString().split('T')[0];
-      grouped[date] = (grouped[date] || 0) + item._count;
+    logs.forEach((log) => {
+      const date = new Date(log.createdAt).toISOString().split('T')[0];
+      grouped[date] = (grouped[date] || 0) + 1;
     });
 
-    return Object.entries(grouped).map(([date, count]) => ({
-      date,
-      count,
-    }));
+    return Object.entries(grouped)
+      .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
+      .map(([date, count]) => ({
+        date,
+        count,
+      }));
   }
 
   /**
@@ -322,30 +326,39 @@ class AnalyticsRepository {
    * Get unique visitors by date
    */
   async getUniqueVisitorsByDate(startDate, endDate) {
-    const result = await prisma.visitorLog.groupBy({
-      by: ['createdAt', 'sessionId'],
+    // Fetch all logs and group manually by date
+    const logs = await prisma.visitorLog.findMany({
       where: {
         createdAt: {
           gte: startDate,
           lte: endDate,
         },
       },
+      select: {
+        createdAt: true,
+        sessionId: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
     });
 
     // Group by date
     const grouped = {};
-    result.forEach((item) => {
-      const date = new Date(item.createdAt).toISOString().split('T')[0];
+    logs.forEach((log) => {
+      const date = new Date(log.createdAt).toISOString().split('T')[0];
       if (!grouped[date]) {
         grouped[date] = new Set();
       }
-      grouped[date].add(item.sessionId);
+      grouped[date].add(log.sessionId);
     });
 
-    return Object.entries(grouped).map(([date, sessions]) => ({
-      date,
-      uniqueVisitors: sessions.size,
-    }));
+    return Object.entries(grouped)
+      .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
+      .map(([date, sessions]) => ({
+        date,
+        uniqueVisitors: sessions.size,
+      }));
   }
 }
 
