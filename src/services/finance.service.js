@@ -199,6 +199,8 @@ const getAllTransactions = async ({
   accountId,
   type,
   programType,
+  divisi,
+  programId,
   startDate,
   endDate,
   search,
@@ -209,6 +211,37 @@ const getAllTransactions = async ({
   if (accountId) where.accountId = accountId;
   if (type) where.type = type;
   if (programType) where.programType = programType;
+  
+  // Filter by programId directly
+  if (programId) {
+    where.programId = programId;
+  }
+  
+  // Filter by divisi - need to fetch program IDs from that divisi
+  if (divisi && !programId) {
+    const [programsDonasi, programsWakaf] = await Promise.all([
+      prisma.programDonasi.findMany({
+        where: { divisiId: divisi },
+        select: { id: true },
+      }),
+      prisma.programWakaf.findMany({
+        where: { divisiId: divisi },
+        select: { id: true },
+      }),
+    ]);
+    
+    const programIds = [
+      ...programsDonasi.map(p => p.id),
+      ...programsWakaf.map(p => p.id),
+    ];
+    
+    if (programIds.length > 0) {
+      where.programId = { in: programIds };
+    } else {
+      // No programs found for this divisi, return empty result
+      where.programId = 'no-match-uuid-empty';
+    }
+  }
 
   if (startDate || endDate) {
     where.transactionDate = {};
