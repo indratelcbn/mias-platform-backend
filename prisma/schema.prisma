@@ -34,6 +34,7 @@ enum Role {
   PENDIDIKAN
   USAHA
   KEUANGAN
+  VIEWER
 }
 
 // ─── Role Permissions ─────────────────────────────────────────────────────────

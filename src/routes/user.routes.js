@@ -4,7 +4,7 @@ const userController = require('../controllers/user.controller');
 const { authMiddleware, superadminOnly } = require('../middleware/auth.middleware');
 const validate = require('../middleware/validate.middleware');
 
-const VALID_ROLES = ['ADMIN', 'SUPERADMIN', 'SOSIAL', 'DAKWAH', 'PENDIDIKAN', 'USAHA', 'KEUANGAN'];
+const VALID_ROLES = ['ADMIN', 'SUPERADMIN', 'SOSIAL', 'DAKWAH', 'PENDIDIKAN', 'USAHA', 'KEUANGAN', 'VIEWER'];
 
 // All routes require auth
 router.use(authMiddleware);
