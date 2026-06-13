@@ -113,7 +113,7 @@ const getSummary = async () => {
 };
 
 const getRekening = async () => {
-  return prisma.rekening.findMany({ orderBy: { createdAt: 'asc' } });
+  return prisma.rekening.findMany({ where: { isActive: true }, orderBy: { createdAt: 'asc' } });
 };
 
 const createRekening = async (data) => {
