@@ -215,6 +215,15 @@ const exportMonthlyReportPDF = async (req, res, next) => {
   }
 };
 
+const getTrendsData = async (req, res, next) => {
+  try {
+    const data = await financeService.getTrendsData(req.query);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ─── PROGRAMS ──────────────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -458,6 +467,7 @@ module.exports = {
   getMonthlyReport,
   exportMonthlyReportExcel,
   exportMonthlyReportPDF,
+  getTrendsData,
 
   // Programs
   getAllPrograms,

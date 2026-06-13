@@ -892,6 +892,158 @@ const getMonthlyReport = async ({ year, month, accountId } = {}) => {
   };
 };
 
+/**
+ * Get trends data for charts (by divisi and period)
+ */
+const getTrendsData = async ({ divisiId, period = 'MONTHLY', year, startMonth, endMonth, semester, startYear, endYear } = {}) => {
+  const currentYear = Number(year) || new Date().getFullYear();
+
+  let labels = [];
+  let periodRanges = [];
+
+  // ─── Determine period ranges based on period type ──────────────────────────
+  if (period === 'MONTHLY') {
+    // Get data for a range of months within the year (always Jan-first order)
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const sMonth = Math.min(Math.max(Number(startMonth) || 1, 1), 12);
+    const eMonth = Math.min(Math.max(Number(endMonth) || 12, 1), 12);
+    const fromMonth = Math.min(sMonth, eMonth);
+    const toMonth = Math.max(sMonth, eMonth);
+
+    for (let m = fromMonth; m <= toMonth; m++) {
+      const startDate = new Date(currentYear, m - 1, 1);
+      const endDate = new Date(currentYear, m, 0, 23, 59, 59);
+      labels.push(monthNames[m - 1]);
+      periodRanges.push({ startDate, endDate });
+    }
+  } else if (period === 'SEMESTER') {
+    // Get 2 semesters (current year)
+    const currentMonth = new Date().getMonth() + 1;
+    const targetSemester = Number(semester) || (currentMonth <= 6 ? 1 : 2);
+    
+    if (targetSemester === 1) {
+      // Semester 1: Jan-Jun
+      for (let m = 1; m <= 6; m++) {
+        const startDate = new Date(currentYear, m - 1, 1);
+        const endDate = new Date(currentYear, m, 0, 23, 59, 59);
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'];
+        labels.push(monthNames[m - 1]);
+        periodRanges.push({ startDate, endDate });
+      }
+    } else {
+      // Semester 2: Jul-Dec
+      for (let m = 7; m <= 12; m++) {
+        const startDate = new Date(currentYear, m - 1, 1);
+        const endDate = new Date(currentYear, m, 0, 23, 59, 59);
+        const monthNames = ['Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        labels.push(monthNames[m - 7]);
+        periodRanges.push({ startDate, endDate });
+      }
+    }
+  } else if (period === 'YEARLY') {
+    // Get multiple years (3 years by default)
+    const endYr = Number(endYear) || currentYear;
+    const startYr = Number(startYear) || (endYr - 2);
+    
+    for (let y = startYr; y <= endYr; y++) {
+      const startDate = new Date(y, 0, 1);
+      const endDate = new Date(y, 11, 31, 23, 59, 59);
+      labels.push(String(y));
+      periodRanges.push({ startDate, endDate });
+    }
+  }
+
+  // ─── Fetch transactions for each period ────────────────────────────────────
+  const seriesIn = [];
+  const seriesOut = [];
+
+  // ─── Pre-compute divisi OR conditions (outside loop for performance) ─────────
+  let divisiOrConditions = null; // null = no filter applied (all divisi)
+
+  if (divisiId) {
+    // Fetch all programs for this divisi and the operational fallback program
+    const [infaqPrograms, wakafPrograms, operationalProgram, divisiRecord] = await Promise.all([
+      prisma.programDonasi.findMany({ where: { divisiId }, select: { id: true } }),
+      prisma.programWakaf.findMany({ where: { divisiId }, select: { id: true } }),
+      // Operational program (kode '000') — may or may not have divisiId set
+      prisma.programDonasi.findFirst({ where: { kode: '000' }, select: { id: true, divisiId: true } }),
+      prisma.divisi.findUnique({ where: { id: divisiId }, select: { id: true, nama: true } }),
+    ]);
+
+    const infaqIds = infaqPrograms.map((p) => p.id);
+    const wakafIds = wakafPrograms.map((p) => p.id);
+
+    divisiOrConditions = [];
+
+    if (infaqIds.length > 0) {
+      divisiOrConditions.push({ programType: 'INFAQ', programId: { in: infaqIds } });
+    }
+    if (wakafIds.length > 0) {
+      divisiOrConditions.push({ programType: 'WAKAF', programId: { in: wakafIds } });
+    }
+
+    // Include operational program (kode '000') when:
+    // 1. Its divisiId is explicitly set to this divisi (and not already in infaqIds above), OR
+    // 2. Its divisiId is null but the requested divisi is Operasional (by name)
+    if (operationalProgram?.id) {
+      const alreadyIncluded = infaqIds.includes(operationalProgram.id);
+      const isOperasionalDivisi = divisiRecord?.nama?.toLowerCase().includes('operasional');
+
+      if (!alreadyIncluded) {
+        if (operationalProgram.divisiId === divisiId) {
+          divisiOrConditions.push({ programId: operationalProgram.id });
+        } else if (!operationalProgram.divisiId && isOperasionalDivisi) {
+          divisiOrConditions.push({ programId: operationalProgram.id });
+        }
+      }
+    }
+  }
+
+  for (const range of periodRanges) {
+    const where = {
+      transactionDate: {
+        gte: range.startDate,
+        lte: range.endDate,
+      },
+    };
+
+    if (divisiOrConditions !== null) {
+      if (divisiOrConditions.length === 0) {
+        // Divisi has no associated programs — push zeros
+        seriesIn.push(0);
+        seriesOut.push(0);
+        continue;
+      }
+      where.OR = divisiOrConditions;
+    }
+
+    const transactions = await prisma.financeTransaction.findMany({
+      where,
+      select: { type: true, amount: true },
+    });
+
+    const totalIn = transactions
+      .filter((t) => t.type === 'IN')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    const totalOut = transactions
+      .filter((t) => t.type === 'OUT')
+      .reduce((sum, t) => sum + Number(t.amount), 0);
+
+    seriesIn.push(totalIn);
+    seriesOut.push(totalOut);
+  }
+
+  return {
+    period,
+    labels,
+    series: [
+      { name: 'Pemasukan', data: seriesIn },
+      { name: 'Pengeluaran', data: seriesOut },
+    ],
+  };
+};
+
 module.exports = {
   // Account
   getAllAccounts,
@@ -913,4 +1065,5 @@ module.exports = {
   getDashboardSummary,
   getFundTracking,
   getMonthlyReport,
+  getTrendsData,
 };

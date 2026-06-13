@@ -115,6 +115,7 @@ router.delete('/transactions/:id', authMiddleware, adminOnly, financeController.
 
 router.get('/dashboard', authMiddleware, adminOnly, financeController.getDashboardSummary);
 router.get('/fund-tracking', authMiddleware, adminOnly, financeController.getFundTracking);
+router.get('/charts/trends', authMiddleware, adminOnly, financeController.getTrendsData);
 router.get('/reports/monthly', authMiddleware, adminOnly, financeController.getMonthlyReport);
 router.get('/reports/monthly/excel', authMiddleware, adminOnly, financeController.exportMonthlyReportExcel);
 router.get('/reports/monthly/pdf', authMiddleware, adminOnly, financeController.exportMonthlyReportPDF);
