@@ -360,6 +360,28 @@ class AnalyticsRepository {
         uniqueVisitors: sessions.size,
       }));
   }
+
+  /**
+   * Get country statistics by date range
+   */
+  async getCountryStatistics(startDate, endDate) {
+    const rows = await prisma.visitorLog.groupBy({
+      by: ['country'],
+      where: {
+        createdAt: { gte: startDate, lte: endDate },
+      },
+      _count: { country: true },
+      orderBy: { _count: { country: 'desc' } },
+    });
+
+    const total = rows.reduce((sum, r) => sum + r._count.country, 0);
+
+    return rows.map((r) => ({
+      country: r.country || 'Unknown',
+      count: r._count.country,
+      percentage: total > 0 ? parseFloat(((r._count.country / total) * 100).toFixed(1)) : 0,
+    }));
+  }
 }
 
 module.exports = new AnalyticsRepository();

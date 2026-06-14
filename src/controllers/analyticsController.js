@@ -226,6 +226,30 @@ class AnalyticsController {
       });
     }
   }
+
+  /**
+   * GET /api/analytics/countries
+   * Get country statistics
+   */
+  static async getCountries(req, res) {
+    try {
+      const { filter = 'last30days', startDate, endDate } = req.query;
+
+      const data = await analyticsService.getCountryStats(filter, startDate, endDate);
+
+      res.json({
+        success: true,
+        data,
+      });
+    } catch (error) {
+      console.error('Error in getCountries:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error fetching country statistics',
+        error: error.message,
+      });
+    }
+  }
 }
 
 module.exports = AnalyticsController;

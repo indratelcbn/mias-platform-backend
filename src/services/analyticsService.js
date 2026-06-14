@@ -324,6 +324,26 @@ class AnalyticsService {
 
     return matrix;
   }
+
+  /**
+   * Get country statistics
+   */
+  async getCountryStats(filterType = 'last30days', customStartDate = null, customEndDate = null) {
+    let startDate, endDate;
+
+    if (customStartDate && customEndDate) {
+      startDate = new Date(customStartDate);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(customEndDate);
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      const dates = this.parseFilterDates(filterType);
+      startDate = dates.startDate;
+      endDate = dates.endDate;
+    }
+
+    return analyticsRepository.getCountryStatistics(startDate, endDate);
+  }
 }
 
 module.exports = new AnalyticsService();

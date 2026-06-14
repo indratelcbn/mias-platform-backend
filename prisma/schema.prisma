@@ -637,6 +637,7 @@ model VisitorLog {
   screenWidth   Int?     @map("screen_width")
   screenHeight  Int?     @map("screen_height")
   sessionId     String?  @map("session_id")
+  country       String?
   createdAt     DateTime @default(now()) @map("created_at")
 
   @@index([createdAt])

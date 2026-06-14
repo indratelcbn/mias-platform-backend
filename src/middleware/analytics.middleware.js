@@ -1,6 +1,7 @@
 // middleware/analytics.middleware.js
 const { v4: uuidv4 } = require('uuid');
 const { PrismaClient } = require('@prisma/client');
+const geoip = require('geoip-lite');
 
 const prisma = new PrismaClient();
 
@@ -77,6 +78,12 @@ const visitorTrackingMiddleware = async (req, res, next) => {
       deviceName: req.body?.deviceName || null,
       screenWidth: req.body?.screenWidth ? parseInt(req.body.screenWidth) : null,
       screenHeight: req.body?.screenHeight ? parseInt(req.body.screenHeight) : null,
+      country: (() => {
+        try {
+          const geo = geoip.lookup(getClientIp(req));
+          return geo?.country || null;
+        } catch { return null; }
+      })(),
     };
 
     // Track asynchronously without blocking response
@@ -165,6 +172,12 @@ const trackVisitorEndpoint = async (req, res) => {
         screenWidth: screenWidth ? parseInt(screenWidth) : null,
         screenHeight: screenHeight ? parseInt(screenHeight) : null,
         sessionId: sessionId || null,
+        country: (() => {
+          try {
+            const geo = geoip.lookup(getClientIp(req));
+            return geo?.country || null;
+          } catch { return null; }
+        })(),
       },
     });
 

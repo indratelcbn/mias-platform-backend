@@ -42,4 +42,7 @@ router.get('/referrers', AnalyticsController.getReferrers);
 // Visitor heatmap
 router.get('/heatmap', AnalyticsController.getHeatmap);
 
+// Country statistics
+router.get('/countries', AnalyticsController.getCountries);
+
 module.exports = router;
