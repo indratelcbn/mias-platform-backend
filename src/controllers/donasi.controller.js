@@ -140,5 +140,12 @@ const recalcTerkumpul = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, getRekening, createRekening, updateRekening, deleteRekening, getSummary, create, updateStatus, getActiveProgram, getAllProgram, createProgram, updateProgram, deleteProgram, getActiveWakaf, getAllWakaf, createWakaf, updateWakaf, deleteWakaf, recalcTerkumpul };
+const getSummaryPublic = async (req, res, next) => {
+  try {
+    const data = await donasiService.getSummaryPublic();
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+};
+
+module.exports = { getAll, getRekening, createRekening, updateRekening, deleteRekening, getSummary, getSummaryPublic, create, updateStatus, getActiveProgram, getAllProgram, createProgram, updateProgram, deleteProgram, getActiveWakaf, getAllWakaf, createWakaf, updateWakaf, deleteWakaf, recalcTerkumpul };
 

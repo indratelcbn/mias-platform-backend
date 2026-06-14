@@ -112,6 +112,31 @@ const getSummary = async () => {
   };
 };
 
+const getSummaryPublic = async () => {
+  const [jumlahDonatur, programDonasi, programWakaf] = await Promise.all([
+    prisma.donasi.count({ where: { status: 'VERIFIED' } }),
+    prisma.programDonasi.findMany({
+      where: { isActive: true, tampilWebsite: true },
+      select: { target: true, terkumpul: true },
+    }),
+    prisma.programWakaf.findMany({
+      where: { isActive: true, tampilWebsite: true },
+      select: { target: true, terkumpul: true },
+    }),
+  ]);
+
+  const allPrograms = [...programDonasi, ...programWakaf];
+  const totalTerkumpul = allPrograms.reduce((sum, p) => sum + Number(p.terkumpul), 0);
+  const totalTarget = allPrograms.reduce((sum, p) => sum + Number(p.target), 0);
+
+  return {
+    jumlahDonatur,
+    totalTerkumpul,
+    totalTarget,
+    jumlahProgramAktif: allPrograms.length,
+  };
+};
+
 const getRekening = async () => {
   return prisma.rekening.findMany({ where: { isActive: true }, orderBy: { createdAt: 'asc' } });
 };
@@ -271,4 +296,4 @@ const deleteWakaf = async (id) => {
   return prisma.programWakaf.delete({ where: { id } });
 };
 
-module.exports = { getAll, create, updateStatus, getSummary, recalcAllTerkumpul, getRekening, createRekening, updateRekening, deleteRekening, getAllProgram, getActiveProgram, createProgram, updateProgram, deleteProgram, getAllWakaf, getActiveWakaf, createWakaf, updateWakaf, deleteWakaf };
+module.exports = { getAll, create, updateStatus, getSummary, getSummaryPublic, recalcAllTerkumpul, getRekening, createRekening, updateRekening, deleteRekening, getAllProgram, getActiveProgram, createProgram, updateProgram, deleteProgram, getAllWakaf, getActiveWakaf, createWakaf, updateWakaf, deleteWakaf };

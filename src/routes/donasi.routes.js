@@ -7,6 +7,7 @@ const validate = require('../middleware/validate.middleware');
 
 // ─── Public Routes ──────────────────────────────────────────────────────────────
 router.get('/rekening', donasiController.getRekening);
+router.get('/summary-public', donasiController.getSummaryPublic);
 router.get('/program', donasiController.getActiveProgram);
 
 router.post(
