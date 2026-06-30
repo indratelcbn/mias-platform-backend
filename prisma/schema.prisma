@@ -10,6 +10,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  SUPERADMIN
+  SOSIAL
+  DAKWAH
+  PENDIDIKAN
+  USAHA
+  KEUANGAN
+  VIEWER
+  KETUA_DKM
+  WAKIL_DKM
+}
+
 // ─── User (Admin) ─────────────────────────────────────────────────────────────
 model User {
   id        String   @id @default(uuid())
@@ -23,18 +36,94 @@ model User {
   artikel  Artikel[]
   kajian   Kajian[]
 
+  submissions        Submission[]              @relation("SubmittedBy")
+  approvedSubmissions Submission[]             @relation("ApprovedBy")
+  rejectedSubmissions Submission[]             @relation("RejectedBy")
+  disbursedSubmissions Submission[]            @relation("DisbursedBy")
+  approvalLogs       SubmissionApprovalLog[]   @relation("ApprovalLogUser")
+
   @@map("users")
 }
 
-enum Role {
-  ADMIN
-  SUPERADMIN
-  SOSIAL
-  DAKWAH
-  PENDIDIKAN
-  USAHA
-  KEUANGAN
-  VIEWER
+// ─── Submission (Pengajuan Keuangan) ─────────────────────────────────────────────
+model Submission {
+  id           String           @id @default(uuid())
+  nomor        String?          @unique
+  judul        String
+  deskripsi    String?
+  amount       Decimal          @db.Decimal(15, 2)
+  metodePencairan String?       @map("metode_pencairan") // CASH atau TRANSFER
+  rekeningId   String?          @map("rekening_id")
+  status       SubmissionStatus @default(DRAFT)
+  submittedById String?         @map("submitted_by_id")
+  approvedById  String?         @map("approved_by_id")
+  approvedAt    DateTime?       @map("approved_at")
+  rejectedById  String?         @map("rejected_by_id")
+  rejectedAt    DateTime?       @map("rejected_at")
+  rejectionNote String?         @map("rejection_note")
+  disbursedById String?         @map("disbursed_by_id")
+  disbursedAt   DateTime?       @map("disbursed_at")
+  disbursementRef String?       @map("disbursement_ref")
+  buktiPencairan String?       @map("bukti_pencairan")
+  notes         String?
+  attachment    String?
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  submittedBy  User?  @relation("SubmittedBy", fields: [submittedById], references: [id])
+  approvedBy   User?  @relation("ApprovedBy", fields: [approvedById], references: [id])
+  rejectedBy   User?  @relation("RejectedBy", fields: [rejectedById], references: [id])
+  disbursedBy  User?  @relation("DisbursedBy", fields: [disbursedById], references: [id])
+  rekening     RekeningPencairan? @relation(fields: [rekeningId], references: [id])
+  approvalLogs SubmissionApprovalLog[]
+  items        SubmissionItem[]
+
+  @@index([status])
+  @@index([submittedById])
+  @@index([approvedById])
+  @@index([createdAt])
+  @@map("submissions")
+}
+
+// ─── Submission Item (Rincian Pengajuan) ────────────────────────────────────
+model SubmissionItem {
+  id           String   @id @default(uuid())
+  submissionId String   @map("submission_id")
+  namaBarang   String   @map("nama_barang")    // e.g. "Hadiah untuk Ustadz"
+  qty          Int      @default(1)            // Kuantitas
+  hargaSatuan  Decimal  @db.Decimal(15, 2) @map("harga_satuan")
+  jumlah       Decimal  @db.Decimal(15, 2)     // qty * hargaSatuan
+  keterangan   String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@map("submission_items")
+}
+
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model SubmissionApprovalLog {
+  id           String   @id @default(uuid())
+  submissionId String   @map("submission_id")
+  userId       String   @map("user_id")
+  action       String   // APPROVED / REJECTED
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  user       User?      @relation("ApprovalLogUser", fields: [userId], references: [id])
+
+  @@index([submissionId])
+  @@index([userId])
+  @@map("submission_approval_logs")
 }
 
 // ─── Role Permissions ─────────────────────────────────────────────────────────
@@ -128,6 +217,19 @@ model Rekening {
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("rekening")
+}
+
+// ─── Rekening Pencairan (khusus Pengajuan Keuangan) ───────────────────────────
+model RekeningPencairan {
+  id          String   @id @default(uuid())
+  namaBank    String   @map("nama_bank")
+  noRekening  String   @map("no_rekening")
+  atasNama    String   @map("atas_nama")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  submissions Submission[]
+
+  @@map("rekening_pencairan")
 }
 
 // ─── Galeri (Kegiatan Ramadhan & Sholat Ied) ─────────────────────────────────

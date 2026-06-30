@@ -16,15 +16,30 @@ const authMiddleware = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
 
-    // Block write operations immediately for VIEWER role
-    if (
-      decoded.role === 'VIEWER' &&
-      ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: 'Akses ditolak. Role Viewer hanya dapat melihat data, tidak dapat menambah, mengubah, atau menghapus.',
-      });
+    // Izinkan VIEWER/KETUA_DKM/WAKIL_DKM melakukan approve/reject pada endpoint submission
+    const isSubmissionApproval = req.baseUrl.includes('/finance/submissions') &&
+      (req.path.endsWith('/approve') || req.path.endsWith('/reject'));
+
+    // Izinkan KEUANGAN melakukan disburse
+    const isSubmissionDisburse = req.baseUrl.includes('/finance/submissions') &&
+      req.path.endsWith('/disburse');
+
+    const viewerRoles = ['VIEWER', 'KETUA_DKM', 'WAKIL_DKM'];
+    const isViewerWrite = viewerRoles.includes(decoded.role) &&
+      ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
+
+    if (isViewerWrite) {
+      // Izinkan VIEWER/KETUA_DKM/WAKIL_DKM approve/reject submission
+      if (isSubmissionApproval) return next();
+      // Tolak write lainnya untuk VIEWER
+      if (decoded.role === 'VIEWER') {
+        return res.status(403).json({
+          success: false,
+          message: 'Akses ditolak. Role Viewer hanya dapat melihat data.',
+        });
+      }
+      // KETUA_DKM dan WAKIL_DKM diizinkan write pada endpoint submission (create/submit/approve/reject)
+      if (req.baseUrl.includes('/finance/submissions')) return next();
     }
 
     next();
