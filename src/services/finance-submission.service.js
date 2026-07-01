@@ -1,6 +1,10 @@
 const prisma = require('../lib/prisma');
 const { Prisma } = require('@prisma/client');
 const PDFDocument = require('pdfkit');
+const path = require('path');
+
+const LOGO_MIAS = path.join(__dirname, '../../../frontend/public/logo-mias.png');
+const LOGO_MIAS_TV = path.join(__dirname, '../../../frontend/public/LOGO MIAS TV.png');
 
 const ROMAN_MONTHS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 
@@ -461,7 +465,13 @@ const generateSubmissionPDF = (submission) => {
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    // Header
+    const pageWidth = doc.page.width;
+
+    // ── Logo Header ──
+    try { doc.image(LOGO_MIAS, 50, 40, { width: 60 }); } catch (e) { /* skip */ }
+    try { doc.image(LOGO_MIAS_TV, pageWidth - 110, 55, { width: 60 }); } catch (e) { /* skip */ }
+
+    // ── Judul Dokumen ──
     doc.fontSize(16).font('Helvetica-Bold').text('PENGAJUAN KEUANGAN', { align: 'center' });
     doc.moveDown(0.3);
     doc.fontSize(12).font('Helvetica').text('Masjid Imam Asy Syafi\'i Depok', { align: 'center' });
@@ -471,7 +481,7 @@ const generateSubmissionPDF = (submission) => {
     doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke('#1B7A4A');
     doc.moveDown(0.8);
 
-    // Info utama
+    // ── Info utama ──
     doc.fontSize(11).font('Helvetica-Bold').text('Informasi Pengajuan');
     doc.moveDown(0.3);
     doc.fontSize(10).font('Helvetica');
@@ -506,22 +516,21 @@ const generateSubmissionPDF = (submission) => {
       doc.font('Helvetica').text(submission.deskripsi);
     }
 
-    // Tabel Item
+    // ── Tabel Item ──
     doc.moveDown(1);
     doc.fontSize(11).font('Helvetica-Bold').text('Rincian Item Pengajuan');
     doc.moveDown(0.3);
 
     const tTop = doc.y;
-    const c1 = 50, c2 = 230, c3 = 310, c4 = 390, c5 = 470;
+    const c1 = 50, c2 = 90, c3 = 230, c4 = 300, c5 = 400;
 
-    // Header row
     doc.rect(50, tTop, 495, 20).fill('#1B7A4A');
     doc.fill('#FFFFFF').fontSize(10).font('Helvetica-Bold');
-    doc.text('No', c1, tTop + 5, { width: 40 });
-    doc.text('Nama Item', c2, tTop + 5, { width: 80 });
-    doc.text('Qty', c3, tTop + 5, { width: 50, align: 'center' });
-    doc.text('Harga Satuan', c4, tTop + 5, { width: 80, align: 'right' });
-    doc.text('Jumlah', c5, tTop + 5, { width: 75, align: 'right' });
+    doc.text('No', c1, tTop + 5, { width: 30, align: 'center' });
+    doc.text('Nama Item', c2, tTop + 5, { width: 130 });
+    doc.text('Qty', c3, tTop + 5, { width: 40, align: 'center' });
+    doc.text('Harga', c4, tTop + 5, { width: 90, align: 'right' });
+    doc.text('Jumlah', c5, tTop + 5, { width: 95, align: 'right' });
 
     doc.fill('#000000').font('Helvetica');
     let y = tTop + 22;
@@ -534,21 +543,20 @@ const generateSubmissionPDF = (submission) => {
       items.forEach((item, i) => {
         if (i % 2 === 0) doc.rect(50, y - 2, 495, 18).fill('#F5F5F5');
         doc.fill('#000000');
-        doc.text(String(i + 1), c1, y, { width: 40 });
-        doc.text(item.namaBarang || '-', c2, y, { width: 80 });
-        doc.text(String(item.qty), c3, y, { width: 50, align: 'center' });
-        doc.text(formatRupiah(item.hargaSatuan), c4, y, { width: 80, align: 'right' });
-        doc.text(formatRupiah(item.jumlah), c5, y, { width: 75, align: 'right' });
+        doc.text(String(i + 1), c1, y, { width: 30, align: 'center' });
+        doc.text(item.namaBarang || '-', c2, y, { width: 130 });
+        doc.text(String(item.qty), c3, y, { width: 40, align: 'center' });
+        doc.text(formatRupiah(item.hargaSatuan), c4, y, { width: 90, align: 'right' });
+        doc.text(formatRupiah(item.jumlah), c5, y, { width: 95, align: 'right' });
         y += 18;
       });
     }
 
-    // Total
     doc.moveTo(50, y).lineTo(545, y).stroke('#1B7A4A');
     y += 5;
     doc.font('Helvetica-Bold').fontSize(11);
-    doc.text('TOTAL', c3, y, { width: 80, align: 'right' });
-    doc.text(formatRupiah(submission.amount), c5, y, { width: 75, align: 'right' });
+    doc.text('TOTAL', 300, y, { width: 90, align: 'right' });
+    doc.text(formatRupiah(submission.amount), c5, y, { width: 95, align: 'right' });
 
     if (submission.notes) {
       doc.moveDown(2);
@@ -556,8 +564,43 @@ const generateSubmissionPDF = (submission) => {
       doc.font('Helvetica').text(submission.notes);
     }
 
-    // Footer
-    doc.moveDown(2);
+    // ── Stempel DISETUJUI ──
+    if (submission.status === 'APPROVED' || submission.status === 'REJECTED') {
+      const stampX = 350, stampY = y + 30;
+      const stampColor = submission.status === 'APPROVED' ? '#1B7A4A' : '#D32F2F';
+      const stampText = submission.status === 'APPROVED' ? 'DISETUJUI' : 'DITOLAK';
+
+      doc.save();
+      doc.translate(stampX + 60, stampY + 25);
+      doc.rotate(-15);
+      doc.roundedRect(-60, -25, 120, 50, 8).lineWidth(3).stroke(stampColor);
+      doc.fill(stampColor).fontSize(18).font('Helvetica-Bold').text(stampText, -55, -12, { width: 110, align: 'center' });
+      doc.restore();
+
+      // Ensure doc.y is below the stamp before signature section
+      doc.y = Math.max(doc.y, stampY + 80);
+    }
+
+    // ── Tanda Tangan ──
+    doc.moveDown(3);
+    const sigY = doc.y;
+    const leftX = 80;
+    const rightX = 370;
+    const sigWidth = 150;
+
+    doc.fontSize(10).font('Helvetica').text('Mengetahui,', leftX, sigY, { width: sigWidth });
+
+    // Ketua DKM
+    doc.font('Helvetica-Bold').text('Ketua DKM', leftX, sigY + 60, { width: sigWidth, align: 'center' });
+    doc.moveTo(leftX, sigY + 110).lineTo(leftX + sigWidth, sigY + 110).stroke('#999');
+    doc.font('Helvetica').fontSize(9).text('(                                )', leftX, sigY + 115, { width: sigWidth, align: 'center' });
+
+    // Wakil Ketua DKM
+    doc.fontSize(10).font('Helvetica-Bold').text('Wakil Ketua DKM', rightX, sigY + 60, { width: sigWidth, align: 'center' });
+    doc.moveTo(rightX, sigY + 110).lineTo(rightX + sigWidth, sigY + 110).stroke('#999');
+    doc.font('Helvetica').fontSize(9).text('(                                )', rightX, sigY + 115, { width: sigWidth, align: 'center' });
+
+    // ── Footer ──
     doc.fontSize(9).font('Helvetica').fill('#888888');
     doc.text('Dokumen ini dibuat otomatis oleh sistem MIAS.', { align: 'center' });
     doc.text('Tanggal cetak: ' + formatDate(new Date()), { align: 'center' });
@@ -578,6 +621,10 @@ const generateSubmissionsListPDF = (submissions, filters = {}) => {
     doc.on('error', reject);
 
     // Header
+    const listPageWidth = doc.page.width;
+    try { doc.image(LOGO_MIAS, 40, 30, { width: 50 }); } catch (e) { /* skip */ }
+    try { doc.image(LOGO_MIAS_TV, listPageWidth - 90, 30, { width: 50 }); } catch (e) { /* skip */ }
+
     doc.fontSize(14).font('Helvetica-Bold').text('LAPORAN PENGAJUAN KEUANGAN', { align: 'center' });
     doc.fontSize(10).font('Helvetica').text('Masjid Imam Asy Syafi\'i Depok', { align: 'center' });
     doc.moveDown(0.3);
