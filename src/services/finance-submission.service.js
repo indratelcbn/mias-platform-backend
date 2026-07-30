@@ -3,6 +3,63 @@ const { Prisma } = require('@prisma/client');
 const PDFDocument = require('pdfkit');
 const path = require('path');
 
+/**
+ * Simpan nama item ke tabel suggestion agar bisa dipakai auto-complete
+ * pada pengajuan berikutnya. Menerima array item, meng-upsert nama unik.
+ */
+const saveItemNames = async (items = [], tx = prisma) => {
+  const names = [...new Set(
+    items
+      .map((it) => (it.namaBarang || '').trim())
+      .filter((n) => n.length > 0)
+  )];
+  if (names.length === 0) return;
+  await Promise.all(
+    names.map((nama) =>
+      tx.submissionItemName.upsert({
+        where: { nama },
+        update: {},
+        create: { nama },
+      })
+    )
+  );
+};
+
+/**
+ * Ambil daftar nama item untuk suggestion (auto-complete)
+ */
+const getItemNameSuggestions = async () => {
+  const rows = await prisma.submissionItemName.findMany({
+    orderBy: { nama: 'asc' },
+    select: { nama: true },
+  });
+  return rows.map((r) => r.nama);
+};
+
+/**
+ * Normalisasi items dari payload menjadi bentuk siap simpan.
+ * Mendukung field subJudul (untuk jenis KAJIAN) dan urutan.
+ */
+const normalizeItems = (items = []) => {
+  let totalAmount = 0;
+  const submissionItems = items.map((item, idx) => {
+    const qty = Number(item.qty) || 1;
+    const hargaSatuan = Number(item.hargaSatuan) || 0;
+    const jumlah = qty * hargaSatuan;
+    totalAmount += jumlah;
+    return {
+      subJudul: item.subJudul ? String(item.subJudul).trim() || null : null,
+      namaBarang: item.namaBarang,
+      qty,
+      hargaSatuan,
+      jumlah,
+      keterangan: item.keterangan || null,
+      urutan: Number(item.urutan) >= 0 ? Number(item.urutan) : idx,
+    };
+  });
+  return { submissionItems, totalAmount };
+};
+
 const LOGO_MIAS = path.join(__dirname, '../../../frontend/public/logo-mias.png');
 const LOGO_MIAS_TV = path.join(__dirname, '../../../frontend/public/LOGO MIAS TV.png');
 
@@ -48,7 +105,7 @@ const getAllSubmissions = async ({ page = 1, limit = 20, status, submittedBy } =
         rejectedBy:  { select: { id: true, nama: true, role: true } },
         disbursedBy: { select: { id: true, nama: true, role: true } },
         rekening: true,
-        items: { orderBy: { createdAt: 'asc' } },
+        items: { orderBy: [{ urutan: 'asc' }, { createdAt: 'asc' }] },
       },
     }),
     prisma.submission.count({ where }),
@@ -72,7 +129,7 @@ const getSubmissionById = async (id) => {
       rejectedBy:  { select: { id: true, nama: true, role: true } },
       disbursedBy: { select: { id: true, nama: true, role: true } },
       rekening: true,
-      items: { orderBy: { createdAt: 'asc' } },
+      items: { orderBy: [{ urutan: 'asc' }, { createdAt: 'asc' }] },
       approvalLogs: {
         orderBy: { createdAt: 'desc' },
         include: { user: { select: { id: true, nama: true, role: true } } },
@@ -94,7 +151,7 @@ const getSubmissionById = async (id) => {
  * Total amount dihitung otomatis dari items
  */
 const createSubmission = async (data, userId) => {
-  const { judul, deskripsi, notes, attachment, metodePencairan, rekeningId, items } = data;
+  const { jenis, judul, deskripsi, notes, attachment, metodePencairan, rekeningId, items } = data;
 
   if (!judul) {
     const err = new Error('Judul wajib diisi.');
@@ -108,27 +165,15 @@ const createSubmission = async (data, userId) => {
     throw err;
   }
 
-  // Hitung total amount dari items
-  let totalAmount = 0;
-  const submissionItems = items.map(item => {
-    const qty = Number(item.qty) || 1;
-    const hargaSatuan = Number(item.hargaSatuan) || 0;
-    const jumlah = qty * hargaSatuan;
-    totalAmount += jumlah;
-    return {
-      namaBarang: item.namaBarang,
-      qty,
-      hargaSatuan,
-      jumlah,
-      keterangan: item.keterangan || null,
-    };
-  });
+  const jenisPengajuan = jenis === 'KAJIAN' ? 'KAJIAN' : 'UMUM';
+  const { submissionItems, totalAmount } = normalizeItems(items);
 
   const nomor = await generateNomor();
 
   const submission = await prisma.submission.create({
     data: {
       nomor,
+      jenis: jenisPengajuan,
       judul,
       deskripsi: deskripsi || null,
       amount: new Prisma.Decimal(totalAmount),
@@ -142,9 +187,12 @@ const createSubmission = async (data, userId) => {
     },
     include: {
       submittedBy: { select: { id: true, nama: true, role: true } },
-      items: true,
+      items: { orderBy: [{ urutan: 'asc' }, { createdAt: 'asc' }] },
     },
   });
+
+  // Simpan nama item untuk suggestion (jangan gagalkan pembuatan jika error)
+  saveItemNames(items).catch(() => {});
 
   return submission;
 };
@@ -161,9 +209,10 @@ const updateSubmission = async (id, data) => {
     throw err;
   }
 
-  const { judul, deskripsi, notes, attachment, metodePencairan, rekeningId, items } = data;
+  const { jenis, judul, deskripsi, notes, attachment, metodePencairan, rekeningId, items } = data;
   const updateData = {};
 
+  if (jenis !== undefined) updateData.jenis = jenis === 'KAJIAN' ? 'KAJIAN' : 'UMUM';
   if (judul !== undefined) updateData.judul = judul;
   if (deskripsi !== undefined) updateData.deskripsi = deskripsi;
   if (notes !== undefined) updateData.notes = notes;
@@ -175,20 +224,7 @@ const updateSubmission = async (id, data) => {
 
   // Jika items dikirim, replace semua items dan hitung ulang total
   if (items && Array.isArray(items)) {
-    let totalAmount = 0;
-    const submissionItems = items.map(item => {
-      const qty = Number(item.qty) || 1;
-      const hargaSatuan = Number(item.hargaSatuan) || 0;
-      const jumlah = qty * hargaSatuan;
-      totalAmount += jumlah;
-      return {
-        namaBarang: item.namaBarang,
-        qty,
-        hargaSatuan,
-        jumlah,
-        keterangan: item.keterangan || null,
-      };
-    });
+    const { submissionItems, totalAmount } = normalizeItems(items);
     updateData.amount = new Prisma.Decimal(totalAmount);
 
     // Hapus items lama, buat baru dalam transaksi
@@ -202,10 +238,14 @@ const updateSubmission = async (id, data) => {
         },
         include: {
           submittedBy: { select: { id: true, nama: true, role: true } },
-          items: true,
+          items: { orderBy: [{ urutan: 'asc' }, { createdAt: 'asc' }] },
         },
       });
     });
+
+    // Simpan nama item untuk suggestion
+    saveItemNames(items).catch(() => {});
+
     return submission;
   }
 
@@ -535,10 +575,47 @@ const generateSubmissionPDF = (submission) => {
     doc.fill('#000000').font('Helvetica');
     let y = tTop + 22;
     const items = submission.items || [];
+    const isKajian = submission.jenis === 'KAJIAN';
 
     if (items.length === 0) {
       doc.text('Tidak ada item', c1, y);
       y += 18;
+    } else if (isKajian) {
+      // Kelompokkan berdasarkan sub judul
+      const groups = [];
+      const groupMap = new Map();
+      items.forEach((item) => {
+        const key = item.subJudul || 'Lainnya';
+        if (!groupMap.has(key)) {
+          const g = { subJudul: key, items: [] };
+          groupMap.set(key, g);
+          groups.push(g);
+        }
+        groupMap.get(key).items.push(item);
+      });
+
+      let no = 1;
+      groups.forEach((g) => {
+        if (y > 720) { doc.addPage(); y = 50; }
+        // Baris sub judul
+        doc.rect(50, y - 2, 495, 18).fill('#E8F5E9');
+        doc.fill('#1B7A4A').font('Helvetica-Bold').fontSize(10);
+        doc.text(g.subJudul, c1 + 5, y, { width: 470 });
+        y += 18;
+        doc.fill('#000000').font('Helvetica');
+        g.items.forEach((item, i) => {
+          if (y > 740) { doc.addPage(); y = 50; }
+          if (i % 2 === 0) doc.rect(50, y - 2, 495, 18).fill('#F5F5F5');
+          doc.fill('#000000');
+          doc.text(String(no), c1, y, { width: 30, align: 'center' });
+          doc.text(item.namaBarang || '-', c2, y, { width: 130 });
+          doc.text(String(item.qty), c3, y, { width: 40, align: 'center' });
+          doc.text(formatRupiah(item.hargaSatuan), c4, y, { width: 90, align: 'right' });
+          doc.text(formatRupiah(item.jumlah), c5, y, { width: 95, align: 'right' });
+          y += 18;
+          no += 1;
+        });
+      });
     } else {
       items.forEach((item, i) => {
         if (i % 2 === 0) doc.rect(50, y - 2, 495, 18).fill('#F5F5F5');
@@ -696,6 +773,7 @@ module.exports = {
   rejectSubmission,
   disburseSubmission,
   getSubmissionSummary,
+  getItemNameSuggestions,
   generateSubmissionPDF,
   generateSubmissionsListPDF,
 };

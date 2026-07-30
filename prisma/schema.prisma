@@ -49,6 +49,7 @@ model User {
 model Submission {
   id           String           @id @default(uuid())
   nomor        String?          @unique
+  jenis        String           @default("UMUM") // UMUM atau KAJIAN
   judul        String
   deskripsi    String?
   amount       Decimal          @db.Decimal(15, 2)
@@ -89,11 +90,13 @@ model Submission {
 model SubmissionItem {
   id           String   @id @default(uuid())
   submissionId String   @map("submission_id")
+  subJudul     String?  @map("sub_judul")      // Sub judul pengajuan (untuk jenis KAJIAN)
   namaBarang   String   @map("nama_barang")    // e.g. "Hadiah untuk Ustadz"
   qty          Int      @default(1)            // Kuantitas
   hargaSatuan  Decimal  @db.Decimal(15, 2) @map("harga_satuan")
   jumlah       Decimal  @db.Decimal(15, 2)     // qty * hargaSatuan
   keterangan   String?
+  urutan       Int      @default(0)            // Urutan tampil
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -101,6 +104,16 @@ model SubmissionItem {
 
   @@index([submissionId])
   @@map("submission_items")
+}
+
+// ─── Submission Item Name (Suggest input Nama Item) ─────────────────────────
+model SubmissionItemName {
+  id        String   @id @default(uuid())
+  nama      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("submission_item_names")
 }
 
 enum SubmissionStatus {

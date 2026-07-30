@@ -17,6 +17,9 @@ router.get('/summary', controller.getSubmissionSummary);
 router.get('/rekening/list', controller.getSubmissionRekening);
 router.post('/rekening', controller.createSubmissionRekening);
 
+// ═══ ITEM NAME SUGGESTIONS ═══════════════════ harus sebelum /:id
+router.get('/items/suggestions', controller.getItemNameSuggestions);
+
 router.get('/:id', controller.getSubmissionById);
 
 // ═══ CRUD ══════════════════════════════════════════════════════════════════════

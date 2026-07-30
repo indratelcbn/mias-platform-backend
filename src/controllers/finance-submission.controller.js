@@ -107,6 +107,15 @@ const getSubmissionSummary = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ═══ ITEM NAME SUGGESTIONS ══════════════════════════════════════════════════════
+
+const getItemNameSuggestions = async (req, res, next) => {
+  try {
+    const data = await submissionService.getItemNameSuggestions();
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+};
+
 // ═══ PDF EXPORT ═════════════════════════════════════════════════════════════════
 
 const exportSubmissionPDF = async (req, res, next) => {
@@ -145,4 +154,5 @@ module.exports = {
   exportSubmissionsListPDF,
   getSubmissionRekening,
   createSubmissionRekening,
+  getItemNameSuggestions,
 };
