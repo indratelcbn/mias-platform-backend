@@ -49,6 +49,9 @@ const normalizeItems = (items = []) => {
     totalAmount += jumlah;
     return {
       subJudul: item.subJudul ? String(item.subJudul).trim() || null : null,
+      subTanggal: item.subTanggal ? String(item.subTanggal).trim() || null : null,
+      subHari: item.subHari ? String(item.subHari).trim() || null : null,
+      subWaktu: item.subWaktu ? String(item.subWaktu).trim() || null : null,
       namaBarang: item.namaBarang,
       qty,
       hargaSatuan,
@@ -587,7 +590,7 @@ const generateSubmissionPDF = (submission) => {
       items.forEach((item) => {
         const key = item.subJudul || 'Lainnya';
         if (!groupMap.has(key)) {
-          const g = { subJudul: key, items: [] };
+          const g = { subJudul: key, subTanggal: item.subTanggal || null, subHari: item.subHari || null, subWaktu: item.subWaktu || null, items: [] };
           groupMap.set(key, g);
           groups.push(g);
         }
@@ -600,7 +603,12 @@ const generateSubmissionPDF = (submission) => {
         // Baris sub judul
         doc.rect(50, y - 2, 495, 18).fill('#E8F5E9');
         doc.fill('#1B7A4A').font('Helvetica-Bold').fontSize(10);
-        doc.text(g.subJudul, c1 + 5, y, { width: 470 });
+        let subHeader = g.subJudul;
+        const jadwal = [];
+        if (g.subTanggal) jadwal.push((g.subHari ? g.subHari + ', ' : '') + formatDate(g.subTanggal));
+        if (g.subWaktu) jadwal.push(g.subWaktu);
+        if (jadwal.length) subHeader += '  (' + jadwal.join(' — ') + ')';
+        doc.text(subHeader, c1 + 5, y, { width: 470 });
         y += 18;
         doc.fill('#000000').font('Helvetica');
         g.items.forEach((item, i) => {

@@ -91,6 +91,9 @@ model SubmissionItem {
   id           String   @id @default(uuid())
   submissionId String   @map("submission_id")
   subJudul     String?  @map("sub_judul")      // Sub judul pengajuan (untuk jenis KAJIAN)
+  subTanggal   String?  @map("sub_tanggal")    // Tanggal sub judul (untuk jenis KAJIAN)
+  subHari      String?  @map("sub_hari")       // Hari sub judul (otomatis dari tanggal)
+  subWaktu     String?  @map("sub_waktu")      // Waktu sub judul (untuk jenis KAJIAN)
   namaBarang   String   @map("nama_barang")    // e.g. "Hadiah untuk Ustadz"
   qty          Int      @default(1)            // Kuantitas
   hargaSatuan  Decimal  @db.Decimal(15, 2) @map("harga_satuan")
