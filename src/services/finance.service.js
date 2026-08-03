@@ -152,15 +152,29 @@ const getAccountBalance = async (accountId) => {
       }
     }
   } else if (account.type === 'BANK') {
-    // Get latest balance from bank import details
+    // Get latest balance from bank import details (SOURCE OF TRUTH jika ada CSV import)
     const latestImport = await prisma.financeBankImportDetail.findFirst({
       where: { accountId },
-      orderBy: { transactionDate: 'desc' },
+      orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
       select: { balance: true },
     });
 
     if (latestImport) {
       balance = Number(latestImport.balance);
+    } else {
+      // Belum ada mutasi bank dari CSV — fallback hitung dari transaksi manual
+      const transactions = await prisma.financeTransaction.findMany({
+        where: { accountId },
+        select: { type: true, amount: true },
+      });
+
+      for (const t of transactions) {
+        if (t.type === 'IN') {
+          balance += Number(t.amount);
+        } else {
+          balance -= Number(t.amount);
+        }
+      }
     }
   }
 
