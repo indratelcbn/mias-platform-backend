@@ -20,6 +20,9 @@ router.post('/rekening', controller.createSubmissionRekening);
 // ═══ ITEM NAME SUGGESTIONS ═══════════════════ harus sebelum /:id
 router.get('/items/suggestions', controller.getItemNameSuggestions);
 
+// ═══ PROGRAM DIVISI SOSIAL ═══════════════════ harus sebelum /:id
+router.get('/sosial/programs', controller.getSosialPrograms);
+
 router.get('/:id', controller.getSubmissionById);
 
 // ═══ CRUD ══════════════════════════════════════════════════════════════════════

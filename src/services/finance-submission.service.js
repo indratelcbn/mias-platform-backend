@@ -37,6 +37,32 @@ const getItemNameSuggestions = async () => {
 };
 
 /**
+ * Ambil daftar nama program milik Divisi Sosial (Infaq + Wakaf).
+ * Dipakai sebagai pilihan Sub Judul pada Pengajuan Sosial.
+ */
+const getSosialPrograms = async () => {
+  const divisiList = await prisma.divisi.findMany({
+    where: { nama: { contains: 'sosial', mode: 'insensitive' } },
+    include: {
+      programDonasi: { orderBy: { urutan: 'asc' }, select: { judul: true, isActive: true } },
+      programWakaf: { orderBy: { urutan: 'asc' }, select: { kegiatan: true, isActive: true } },
+    },
+  });
+
+  const names = new Set();
+  divisiList.forEach((divisi) => {
+    divisi.programDonasi.forEach((p) => {
+      if (p.judul) names.add(p.judul.trim());
+    });
+    divisi.programWakaf.forEach((p) => {
+      if (p.kegiatan) names.add(p.kegiatan.trim());
+    });
+  });
+
+  return Array.from(names).sort((a, b) => a.localeCompare(b, 'id'));
+};
+
+/**
  * Normalisasi items dari payload menjadi bentuk siap simpan.
  * Mendukung field subJudul (untuk jenis KAJIAN) dan urutan.
  */
@@ -168,7 +194,7 @@ const createSubmission = async (data, userId) => {
     throw err;
   }
 
-  const jenisPengajuan = jenis === 'KAJIAN' ? 'KAJIAN' : 'UMUM';
+  const jenisPengajuan = ['KAJIAN', 'SOSIAL'].includes(jenis) ? jenis : 'UMUM';
   const { submissionItems, totalAmount } = normalizeItems(items);
 
   const nomor = await generateNomor();
@@ -215,7 +241,7 @@ const updateSubmission = async (id, data) => {
   const { jenis, judul, deskripsi, notes, attachment, metodePencairan, rekeningId, items } = data;
   const updateData = {};
 
-  if (jenis !== undefined) updateData.jenis = jenis === 'KAJIAN' ? 'KAJIAN' : 'UMUM';
+  if (jenis !== undefined) updateData.jenis = ['KAJIAN', 'SOSIAL'].includes(jenis) ? jenis : 'UMUM';
   if (judul !== undefined) updateData.judul = judul;
   if (deskripsi !== undefined) updateData.deskripsi = deskripsi;
   if (notes !== undefined) updateData.notes = notes;
@@ -578,12 +604,12 @@ const generateSubmissionPDF = (submission) => {
     doc.fill('#000000').font('Helvetica');
     let y = tTop + 22;
     const items = submission.items || [];
-    const isKajian = submission.jenis === 'KAJIAN';
+    const isGrouped = ['KAJIAN', 'SOSIAL'].includes(submission.jenis);
 
     if (items.length === 0) {
       doc.text('Tidak ada item', c1, y);
       y += 18;
-    } else if (isKajian) {
+    } else if (isGrouped) {
       // Kelompokkan berdasarkan sub judul
       const groups = [];
       const groupMap = new Map();
@@ -601,39 +627,45 @@ const generateSubmissionPDF = (submission) => {
       groups.forEach((g) => {
         if (y > 720) { doc.addPage(); y = 50; }
         // Baris sub judul
-        doc.rect(50, y - 2, 495, 18).fill('#E8F5E9');
         doc.fill('#1B7A4A').font('Helvetica-Bold').fontSize(10);
         let subHeader = g.subJudul;
         const jadwal = [];
         if (g.subTanggal) jadwal.push((g.subHari ? g.subHari + ', ' : '') + formatDate(g.subTanggal));
         if (g.subWaktu) jadwal.push(g.subWaktu);
         if (jadwal.length) subHeader += '  (' + jadwal.join(' — ') + ')';
-        doc.text(subHeader, c1 + 5, y, { width: 470 });
-        y += 18;
+        const subH = Math.max(18, doc.heightOfString(subHeader, { width: 470 }) + 6);
+        doc.rect(50, y - 2, 495, subH).fill('#E8F5E9');
+        doc.fill('#1B7A4A').text(subHeader, c1 + 5, y, { width: 470 });
+        y += subH;
         doc.fill('#000000').font('Helvetica');
         g.items.forEach((item, i) => {
-          if (y > 740) { doc.addPage(); y = 50; }
-          if (i % 2 === 0) doc.rect(50, y - 2, 495, 18).fill('#F5F5F5');
+          const nama = item.namaBarang || '-';
+          const rowH = Math.max(18, doc.heightOfString(nama, { width: 130 }) + 6);
+          if (y + rowH > 790) { doc.addPage(); y = 50; }
+          if (i % 2 === 0) doc.rect(50, y - 2, 495, rowH).fill('#F5F5F5');
           doc.fill('#000000');
           doc.text(String(no), c1, y, { width: 30, align: 'center' });
-          doc.text(item.namaBarang || '-', c2, y, { width: 130 });
+          doc.text(nama, c2, y, { width: 130 });
           doc.text(String(item.qty), c3, y, { width: 40, align: 'center' });
           doc.text(formatRupiah(item.hargaSatuan), c4, y, { width: 90, align: 'right' });
           doc.text(formatRupiah(item.jumlah), c5, y, { width: 95, align: 'right' });
-          y += 18;
+          y += rowH;
           no += 1;
         });
       });
     } else {
       items.forEach((item, i) => {
-        if (i % 2 === 0) doc.rect(50, y - 2, 495, 18).fill('#F5F5F5');
+        const nama = item.namaBarang || '-';
+        const rowH = Math.max(18, doc.heightOfString(nama, { width: 130 }) + 6);
+        if (y + rowH > 790) { doc.addPage(); y = 50; }
+        if (i % 2 === 0) doc.rect(50, y - 2, 495, rowH).fill('#F5F5F5');
         doc.fill('#000000');
         doc.text(String(i + 1), c1, y, { width: 30, align: 'center' });
-        doc.text(item.namaBarang || '-', c2, y, { width: 130 });
+        doc.text(nama, c2, y, { width: 130 });
         doc.text(String(item.qty), c3, y, { width: 40, align: 'center' });
         doc.text(formatRupiah(item.hargaSatuan), c4, y, { width: 90, align: 'right' });
         doc.text(formatRupiah(item.jumlah), c5, y, { width: 95, align: 'right' });
-        y += 18;
+        y += rowH;
       });
     }
 
@@ -782,6 +814,7 @@ module.exports = {
   disburseSubmission,
   getSubmissionSummary,
   getItemNameSuggestions,
+  getSosialPrograms,
   generateSubmissionPDF,
   generateSubmissionsListPDF,
 };

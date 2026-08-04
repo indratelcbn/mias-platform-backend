@@ -116,6 +116,15 @@ const getItemNameSuggestions = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ═══ PROGRAM DIVISI SOSIAL (Sub Judul Pengajuan Sosial) ═════════════════════════
+
+const getSosialPrograms = async (req, res, next) => {
+  try {
+    const data = await submissionService.getSosialPrograms();
+    res.json({ success: true, data });
+  } catch (err) { next(err); }
+};
+
 // ═══ PDF EXPORT ═════════════════════════════════════════════════════════════════
 
 const exportSubmissionPDF = async (req, res, next) => {
@@ -155,4 +164,5 @@ module.exports = {
   getSubmissionRekening,
   createSubmissionRekening,
   getItemNameSuggestions,
+  getSosialPrograms,
 };
