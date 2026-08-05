@@ -89,8 +89,8 @@ const normalizeItems = (items = []) => {
   return { submissionItems, totalAmount };
 };
 
-const LOGO_MIAS = path.join(__dirname, '../../../frontend/public/logo-mias.png');
-const LOGO_MIAS_TV = path.join(__dirname, '../../../frontend/public/LOGO MIAS TV.png');
+const LOGO_MIAS = path.join(__dirname, '../assets/logo-mias.png');
+const LOGO_MIAS_TV = path.join(__dirname, '../assets/logo-mias-tv.png');
 
 const ROMAN_MONTHS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 
@@ -624,8 +624,10 @@ const generateSubmissionPDF = (submission) => {
       });
 
       let no = 1;
-      groups.forEach((g) => {
+      groups.forEach((g, gi) => {
         if (y > 720) { doc.addPage(); y = 50; }
+        // Jarak antar sub judul
+        if (gi > 0) y += 12;
         // Baris sub judul
         doc.fill('#1B7A4A').font('Helvetica-Bold').fontSize(10);
         let subHeader = g.subJudul;
@@ -638,11 +640,10 @@ const generateSubmissionPDF = (submission) => {
         doc.fill('#1B7A4A').text(subHeader, c1 + 5, y, { width: 470 });
         y += subH;
         doc.fill('#000000').font('Helvetica');
-        g.items.forEach((item, i) => {
+        g.items.forEach((item) => {
           const nama = item.namaBarang || '-';
           const rowH = Math.max(18, doc.heightOfString(nama, { width: 130 }) + 6);
           if (y + rowH > 790) { doc.addPage(); y = 50; }
-          if (i % 2 === 0) doc.rect(50, y - 2, 495, rowH).fill('#F5F5F5');
           doc.fill('#000000');
           doc.text(String(no), c1, y, { width: 30, align: 'center' });
           doc.text(nama, c2, y, { width: 130 });
@@ -658,7 +659,6 @@ const generateSubmissionPDF = (submission) => {
         const nama = item.namaBarang || '-';
         const rowH = Math.max(18, doc.heightOfString(nama, { width: 130 }) + 6);
         if (y + rowH > 790) { doc.addPage(); y = 50; }
-        if (i % 2 === 0) doc.rect(50, y - 2, 495, rowH).fill('#F5F5F5');
         doc.fill('#000000');
         doc.text(String(i + 1), c1, y, { width: 30, align: 'center' });
         doc.text(nama, c2, y, { width: 130 });
