@@ -168,5 +168,48 @@ const uploadPemateriFiles = (req, res, next) => {
   });
 };
 
-module.exports = { uploadThumbnail, uploadBuktiTransfer, uploadQris, uploadGaleri, uploadQurban, uploadSosial, uploadPendidikan, uploadUmroh, uploadMart, uploadProfilFoto, uploadFasilitas, uploadHeroBanner, uploadPopup, uploadPemateriFiles };
+// ─── Kajian: combined thumbnail (image) + kitabFile (PDF) ────────────────────
+const multerKajianMemory = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'thumbnail') {
+      const okExt  = /\.(jpe?g|png|webp)$/i.test(file.originalname);
+      const okMime = /^image\/(jpeg|png|webp)$/.test(file.mimetype);
+      return okExt && okMime ? cb(null, true) : cb(new Error('Thumbnail harus berupa gambar (jpg, png, webp).'));
+    }
+    if (file.fieldname === 'kitabFile') {
+      const okPdf = file.mimetype === 'application/pdf' || /\.pdf$/i.test(file.originalname);
+      return okPdf ? cb(null, true) : cb(new Error('File kitab harus berupa PDF.'));
+    }
+    cb(null, false);
+  },
+  limits: { fileSize: 20 * 1024 * 1024 },
+});
 
+const uploadKajianFiles = (req, res, next) => {
+  multerKajianMemory.fields([{ name: 'thumbnail', maxCount: 1 }, { name: 'kitabFile', maxCount: 1 }])(req, res, async (err) => {
+    if (err) return next(err);
+    try {
+      if (req.files?.thumbnail?.[0]) {
+        const thumbFile = req.files.thumbnail[0];
+        const dir = path.join(__dirname, '../../uploads/thumbnails');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const filename = `${uuidv4()}.webp`;
+        await sharp(thumbFile.buffer).resize(900, null, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 80 }).toFile(path.join(dir, filename));
+        thumbFile.filename = filename;
+        req.file = thumbFile; // backward compat with controller (req.file?.filename)
+      }
+      if (req.files?.kitabFile?.[0]) {
+        const pdfFile = req.files.kitabFile[0];
+        const dir = path.join(__dirname, '../../uploads/kajian_kitab');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const filename = `${uuidv4()}.pdf`;
+        fs.writeFileSync(path.join(dir, filename), pdfFile.buffer);
+        pdfFile.filename = filename;
+      }
+      next();
+    } catch (e) { next(e); }
+  });
+};
+
+module.exports = { uploadThumbnail, uploadBuktiTransfer, uploadQris, uploadGaleri, uploadQurban, uploadSosial, uploadPendidikan, uploadUmroh, uploadMart, uploadProfilFoto, uploadFasilitas, uploadHeroBanner, uploadPopup, uploadPemateriFiles, uploadKajianFiles };

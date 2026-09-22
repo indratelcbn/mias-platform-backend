@@ -162,6 +162,8 @@ model Kajian {
   lokasi      String?
   deskripsi   String?
   thumbnail   String?
+  kitab       String?
+  kitabFile   String?  @map("kitab_file")
   isPublished Boolean  @default(true) @map("is_published")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

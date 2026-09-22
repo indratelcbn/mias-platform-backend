@@ -2,7 +2,7 @@ const router = require('express').Router();
 const { body } = require('express-validator');
 const kajianController = require('../controllers/kajian.controller');
 const { authMiddleware, adminOnly } = require('../middleware/auth.middleware');
-const { uploadThumbnail } = require('../middleware/upload.middleware');
+const { uploadKajianFiles } = require('../middleware/upload.middleware');
 const validate = require('../middleware/validate.middleware');
 
 const kajianValidation = [
@@ -28,7 +28,7 @@ router.post(
   '/',
   authMiddleware,
   adminOnly,
-  uploadThumbnail.single('thumbnail'),
+  uploadKajianFiles,
   kajianValidation,
   validate,
   kajianController.create
@@ -39,7 +39,7 @@ router.put(
   '/:id',
   authMiddleware,
   adminOnly,
-  uploadThumbnail.single('thumbnail'),
+  uploadKajianFiles,
   validate,
   kajianController.update
 );
