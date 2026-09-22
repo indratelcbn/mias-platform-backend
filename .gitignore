@@ -1,5 +1,7 @@
 # Ignore uploaded thumbnails
 uploads/thumbnails/
+uploads/profil_kitab/
+uploads/kajian_kitab/
 node_modules/
 
 .env
