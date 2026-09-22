@@ -574,6 +574,7 @@ model ProfilPemateri {
   nama       String
   foto       String?
   kitab      String?
+  kitabFile  String?       @map("kitab_file") // PDF file path for download
   jenis      JenisPemateri @default(RUTIN)
   hari       String?       // e.g. "Senin, Rabu" comma-separated (only for RUTIN)
   waktu      String?       // e.g. "Pekan 1, Pekan 3" comma-separated (only for RUTIN)

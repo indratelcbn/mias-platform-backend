@@ -1,7 +1,7 @@
 const router = require('express').Router();
 const ctrl = require('../controllers/profil.controller');
 const { authMiddleware } = require('../middleware/auth.middleware');
-const { uploadProfilFoto, uploadFasilitas } = require('../middleware/upload.middleware');
+const { uploadProfilFoto, uploadFasilitas, uploadPemateriFiles } = require('../middleware/upload.middleware');
 
 // ─── Sejarah ──────────────────────────────────────────────────────────────────
 router.get('/sejarah',     ctrl.getSejarah);
@@ -29,8 +29,8 @@ router.put('/struktur',    authMiddleware, uploadProfilFoto.single('foto'), ctrl
 // ─── Pemateri ─────────────────────────────────────────────────────────────────
 router.get('/pemateri',          ctrl.getPemateriPublic);
 router.get('/pemateri/admin',    authMiddleware, ctrl.getPemateriAdmin);
-router.post('/pemateri',         authMiddleware, uploadProfilFoto.single('foto'), ctrl.createPemateri);
-router.put('/pemateri/:id',      authMiddleware, uploadProfilFoto.single('foto'), ctrl.updatePemateri);
+router.post('/pemateri',         authMiddleware, uploadPemateriFiles, ctrl.createPemateri);
+router.put('/pemateri/:id',      authMiddleware, uploadPemateriFiles, ctrl.updatePemateri);
 router.delete('/pemateri/:id',   authMiddleware, ctrl.deletePemateri);
 
 // ─── Hero Stats (public) ──────────────────────────────────────────────────────

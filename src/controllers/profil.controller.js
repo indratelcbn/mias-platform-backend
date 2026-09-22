@@ -130,7 +130,8 @@ async function createPemateri(req, res, next) {
       urutan:     Number(req.body.urutan) || 0,
       isActive:   req.body.isActive !== undefined ? req.body.isActive === 'true' || req.body.isActive === true : true,
     };
-    const row = await svc.createPemateri(data, req.file?.filename);
+    const kitabFilename = req.files?.kitabFile?.[0]?.filename;
+    const row = await svc.createPemateri(data, req.file?.filename, kitabFilename);
     res.status(201).json({ success: true, data: row });
   } catch (err) { next(err); }
 }
@@ -148,7 +149,8 @@ async function updatePemateri(req, res, next) {
     if (req.body.youtube    !== undefined) data.youtube    = req.body.youtube    || null;
     if (req.body.urutan     !== undefined) data.urutan     = Number(req.body.urutan) || 0;
     if (req.body.isActive   !== undefined) data.isActive   = req.body.isActive === 'true' || req.body.isActive === true;
-    const row = await svc.updatePemateri(req.params.id, data, req.file?.filename);
+    const kitabFilename = req.files?.kitabFile?.[0]?.filename;
+    const row = await svc.updatePemateri(req.params.id, data, req.file?.filename, kitabFilename);
     res.json({ success: true, data: row });
   } catch (err) { next(err); }
 }

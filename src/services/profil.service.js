@@ -127,25 +127,36 @@ async function getPemateriById(id) {
   return p;
 }
 
-async function createPemateri(data, fotoFilename) {
+async function createPemateri(data, fotoFilename, kitabFilename) {
   return prisma.profilPemateri.create({
-    data: { ...data, ...(fotoFilename && { foto: `/uploads/profil/${fotoFilename}` }) },
+    data: {
+      ...data,
+      ...(fotoFilename  && { foto:      `/uploads/profil/${fotoFilename}` }),
+      ...(kitabFilename && { kitabFile: `/uploads/profil_kitab/${kitabFilename}` }),
+    },
   });
 }
 
-async function updatePemateri(id, data, newFotoFilename) {
+async function updatePemateri(id, data, newFotoFilename, newKitabFilename) {
   const curr = await getPemateriById(id);
-  if (newFotoFilename && curr.foto) deleteFile(curr.foto, '');
-  const fotoVal = newFotoFilename ? `/uploads/profil/${newFotoFilename}` : undefined;
+  if (newFotoFilename  && curr.foto)      deleteFile(curr.foto, '');
+  if (newKitabFilename && curr.kitabFile) deleteFile(curr.kitabFile, '');
+  const fotoVal      = newFotoFilename  ? `/uploads/profil/${newFotoFilename}`              : undefined;
+  const kitabFileVal = newKitabFilename ? `/uploads/profil_kitab/${newKitabFilename}` : undefined;
   return prisma.profilPemateri.update({
     where: { id },
-    data: { ...data, ...(fotoVal !== undefined && { foto: fotoVal }) },
+    data: {
+      ...data,
+      ...(fotoVal      !== undefined && { foto:      fotoVal }),
+      ...(kitabFileVal !== undefined && { kitabFile: kitabFileVal }),
+    },
   });
 }
 
 async function deletePemateri(id) {
   const p = await getPemateriById(id);
-  if (p.foto) deleteFile(p.foto, '');
+  if (p.foto)      deleteFile(p.foto, '');
+  if (p.kitabFile) deleteFile(p.kitabFile, '');
   return prisma.profilPemateri.delete({ where: { id } });
 }
 

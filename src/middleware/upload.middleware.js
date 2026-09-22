@@ -124,5 +124,49 @@ const uploadHeroBanner = createUpload('hero_banner', { width: 1920, quality: 85 
 // Popup flyer: promo/event material for the first website visit
 const uploadPopup = createUpload('popup', { width: 1200, quality: 85 });
 
-module.exports = { uploadThumbnail, uploadBuktiTransfer, uploadQris, uploadGaleri, uploadQurban, uploadSosial, uploadPendidikan, uploadUmroh, uploadMart, uploadProfilFoto, uploadFasilitas, uploadHeroBanner, uploadPopup };
+// ─── Pemateri: combined foto (image) + kitabFile (PDF) ───────────────────────
+const multerPemateriMemory = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'foto') {
+      const okExt  = /\.(jpe?g|png|webp)$/i.test(file.originalname);
+      const okMime = /^image\/(jpeg|png|webp)$/.test(file.mimetype);
+      return okExt && okMime ? cb(null, true) : cb(new Error('Foto harus berupa gambar (jpg, png, webp).'));
+    }
+    if (file.fieldname === 'kitabFile') {
+      const okPdf = file.mimetype === 'application/pdf' || /\.pdf$/i.test(file.originalname);
+      return okPdf ? cb(null, true) : cb(new Error('File kitab harus berupa PDF.'));
+    }
+    cb(null, false);
+  },
+  limits: { fileSize: 20 * 1024 * 1024 },
+});
+
+const uploadPemateriFiles = (req, res, next) => {
+  multerPemateriMemory.fields([{ name: 'foto', maxCount: 1 }, { name: 'kitabFile', maxCount: 1 }])(req, res, async (err) => {
+    if (err) return next(err);
+    try {
+      if (req.files?.foto?.[0]) {
+        const fotoFile = req.files.foto[0];
+        const dir = path.join(__dirname, '../../uploads/profil');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const filename = `${uuidv4()}.webp`;
+        await sharp(fotoFile.buffer).resize(1200, null, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toFile(path.join(dir, filename));
+        fotoFile.filename = filename;
+        req.file = fotoFile; // backward compat with existing controller (req.file?.filename)
+      }
+      if (req.files?.kitabFile?.[0]) {
+        const pdfFile = req.files.kitabFile[0];
+        const dir = path.join(__dirname, '../../uploads/profil_kitab');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const filename = `${uuidv4()}.pdf`;
+        fs.writeFileSync(path.join(dir, filename), pdfFile.buffer);
+        pdfFile.filename = filename;
+      }
+      next();
+    } catch (e) { next(e); }
+  });
+};
+
+module.exports = { uploadThumbnail, uploadBuktiTransfer, uploadQris, uploadGaleri, uploadQurban, uploadSosial, uploadPendidikan, uploadUmroh, uploadMart, uploadProfilFoto, uploadFasilitas, uploadHeroBanner, uploadPopup, uploadPemateriFiles };
 
