@@ -698,14 +698,26 @@ const generateSubmissionPDF = (submission) => {
       doc.y = Math.max(doc.y, stampY + 80);
     }
 
-    // ── Tanda Tangan ──
-    doc.moveDown(3);
-    const sigY = doc.y;
+    // ── Tanda Tangan + Footer ──
     const leftX = 80;
     const rightX = 370;
     const sigWidth = 150;
+    const footerHeight = 26;
+    const signatureHeight = 135;
+    const blockGap = 24;
+    const pageBottom = doc.page.height - doc.page.margins.bottom;
 
-    doc.fontSize(10).font('Helvetica').text('Mengetahui,', leftX, sigY, { width: sigWidth });
+    let blockStartY = Math.max(doc.y, y + 40);
+    const blockEndY = blockStartY + signatureHeight + blockGap + footerHeight;
+
+    if (blockEndY > pageBottom) {
+      doc.addPage();
+      blockStartY = doc.page.margins.top + 40;
+    }
+
+    const sigY = blockStartY;
+
+    doc.fill('#000000').fontSize(10).font('Helvetica').text('Mengetahui,', leftX, sigY, { width: sigWidth });
 
     // Ketua DKM
     doc.font('Helvetica-Bold').text('Ketua DKM', leftX, sigY + 60, { width: sigWidth, align: 'center' });
@@ -718,9 +730,10 @@ const generateSubmissionPDF = (submission) => {
     doc.font('Helvetica').fontSize(9).text('(                                )', rightX, sigY + 115, { width: sigWidth, align: 'center' });
 
     // ── Footer ──
+    const footerY = Math.min(sigY + signatureHeight + blockGap, pageBottom - footerHeight);
     doc.fontSize(9).font('Helvetica').fill('#888888');
-    doc.text('Dokumen ini dibuat otomatis oleh sistem MIAS.', { align: 'center' });
-    doc.text('Tanggal cetak: ' + formatDate(new Date()), { align: 'center' });
+    doc.text('Dokumen ini dibuat otomatis oleh sistem MIAS.', 50, footerY, { width: 495, align: 'center' });
+    doc.text('Tanggal cetak: ' + formatDate(new Date()), 50, footerY + 12, { width: 495, align: 'center' });
 
     doc.end();
   });
