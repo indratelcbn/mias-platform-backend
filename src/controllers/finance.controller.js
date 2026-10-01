@@ -158,6 +158,15 @@ const deleteTransaction = async (req, res, next) => {
   }
 };
 
+const deleteTransactionsByFilter = async (req, res, next) => {
+  try {
+    const { count } = await financeService.deleteTransactionsByFilter(req.body || {});
+    res.json({ success: true, message: `${count} transaksi berhasil dihapus.`, count });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // ─── DASHBOARD & REPORTS ───────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -456,6 +465,7 @@ module.exports = {
   createTransaction,
   updateTransaction,
   deleteTransaction,
+  deleteTransactionsByFilter,
 
   // Export Transactions
   exportTransactionsExcel,

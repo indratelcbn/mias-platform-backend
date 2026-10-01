@@ -207,9 +207,7 @@ const getAllAccountsWithBalance = async () => {
 /**
  * Get all transactions with filtering
  */
-const getAllTransactions = async ({
-  page = 1,
-  limit = 20,
+const buildTransactionWhere = async ({
   accountId,
   type,
   programType,
@@ -219,18 +217,17 @@ const getAllTransactions = async ({
   endDate,
   search,
 } = {}) => {
-  const skip = (page - 1) * limit;
   const where = {};
 
   if (accountId) where.accountId = accountId;
   if (type) where.type = type;
   if (programType) where.programType = programType;
-  
+
   // Filter by programId directly
   if (programId) {
     where.programId = programId;
   }
-  
+
   // Filter by divisi - need to fetch program IDs from that divisi
   if (divisi && !programId) {
     const [programsDonasi, programsWakaf] = await Promise.all([
@@ -243,12 +240,12 @@ const getAllTransactions = async ({
         select: { id: true },
       }),
     ]);
-    
+
     const programIds = [
       ...programsDonasi.map(p => p.id),
       ...programsWakaf.map(p => p.id),
     ];
-    
+
     if (programIds.length > 0) {
       where.programId = { in: programIds };
     } else {
@@ -298,6 +295,24 @@ const getAllTransactions = async ({
     }
     where.OR = or;
   }
+
+  return where;
+};
+
+const getAllTransactions = async ({
+  page = 1,
+  limit = 20,
+  accountId,
+  type,
+  programType,
+  divisi,
+  programId,
+  startDate,
+  endDate,
+  search,
+} = {}) => {
+  const skip = (page - 1) * limit;
+  const where = await buildTransactionWhere({ accountId, type, programType, divisi, programId, startDate, endDate, search });
 
   const [data, total] = await Promise.all([
     prisma.financeTransaction.findMany({
@@ -457,6 +472,24 @@ const deleteTransaction = async (id) => {
   return prisma.financeTransaction.delete({
     where: { id },
   });
+};
+
+/**
+ * Delete all transactions matching the given filters (bulk delete).
+ * Requires at least one meaningful filter to avoid wiping the whole table.
+ */
+const deleteTransactionsByFilter = async (filters = {}) => {
+  const { accountId, type, programType, divisi, programId, startDate, endDate, search } = filters;
+  const hasFilter = accountId || type || programType || divisi || programId || startDate || endDate || search;
+  if (!hasFilter) {
+    const err = new Error('Minimal satu filter diperlukan untuk menghapus data.');
+    err.status = 400;
+    throw err;
+  }
+
+  const where = await buildTransactionWhere({ accountId, type, programType, divisi, programId, startDate, endDate, search });
+  const result = await prisma.financeTransaction.deleteMany({ where });
+  return { count: result.count };
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1074,6 +1107,7 @@ module.exports = {
   createTransaction,
   updateTransaction,
   deleteTransaction,
+  deleteTransactionsByFilter,
 
   // Dashboard & Reports
   getDashboardSummary,

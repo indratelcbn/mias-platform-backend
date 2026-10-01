@@ -7,6 +7,14 @@ const validate = require('../middleware/validate.middleware');
 const multer = require('multer');
 const path = require('path');
 
+// Restrict route to ADMIN / SUPERADMIN role only.
+const adminRoleOnly = (req, res, next) => {
+  if (!req.user || !['ADMIN', 'SUPERADMIN'].includes(req.user.role)) {
+    return res.status(403).json({ success: false, message: 'Akses ditolak. Hanya Role Admin yang diizinkan.' });
+  }
+  next();
+};
+
 // ─── CSV Upload Configuration ───────────────────────────────────────────────────
 const csvStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -108,6 +116,9 @@ router.put(
 );
 
 router.delete('/transactions/:id', authMiddleware, adminOnly, financeController.deleteTransaction);
+
+// Bulk delete transaksi berdasarkan filter (hanya Role Admin).
+router.post('/transactions/bulk-delete', authMiddleware, adminRoleOnly, financeController.deleteTransactionsByFilter);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ─── DASHBOARD & REPORTS ───────────────────────────────────────────────────────
