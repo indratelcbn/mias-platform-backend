@@ -272,8 +272,17 @@ const swaggerDocument = {
           id: { type: 'string', format: 'uuid' },
           nama: { type: 'string', example: 'Ustadz Abdurrahman' },
           foto: { type: 'string', nullable: true },
-          bidang: { type: 'string' },
-          bio: { type: 'string' },
+          kitab: { type: 'string', nullable: true },
+          kitabArabFile: { type: 'string', nullable: true },
+          kitabTerjemahFile: { type: 'string', nullable: true },
+          jenis: { type: 'string', enum: ['RUTIN', 'TEMATIK'] },
+          hari: { type: 'string', nullable: true },
+          waktu: { type: 'string', nullable: true },
+          jam: { type: 'string', nullable: true },
+          keterangan: { type: 'string', nullable: true },
+          youtube: { type: 'string', nullable: true },
+          urutan: { type: 'integer' },
+          isActive: { type: 'boolean' },
         },
       },
       // â”€â”€ Setting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1398,7 +1407,32 @@ const swaggerDocument = {
       get: { tags: ['Profil'], summary: 'Daftar pemateri aktif (public)', responses: { 200: { description: 'Daftar pemateri', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/Pemateri' } } } } } } },
       post: {
         tags: ['Profil'], summary: 'Tambah pemateri (admin)', security: [{ bearerAuth: [] }],
-        requestBody: { required: true, content: { 'multipart/form-data': { schema: { type: 'object', required: ['nama'], properties: { nama: { type: 'string' }, bidang: { type: 'string' }, bio: { type: 'string' }, foto: { type: 'string', format: 'binary' } } } } } },
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                required: ['nama'],
+                properties: {
+                  nama: { type: 'string' },
+                  kitab: { type: 'string' },
+                  jenis: { type: 'string', enum: ['RUTIN', 'TEMATIK'] },
+                  hari: { type: 'string' },
+                  waktu: { type: 'string' },
+                  jam: { type: 'string' },
+                  keterangan: { type: 'string' },
+                  youtube: { type: 'string' },
+                  urutan: { type: 'integer' },
+                  isActive: { type: 'boolean' },
+                  foto: { type: 'string', format: 'binary' },
+                  kitabArabFile: { type: 'string', format: 'binary' },
+                  kitabTerjemahFile: { type: 'string', format: 'binary' },
+                },
+              },
+            },
+          },
+        },
         responses: { 201: { description: 'Pemateri ditambahkan' } },
       },
     },
@@ -1409,7 +1443,30 @@ const swaggerDocument = {
       put: {
         tags: ['Profil'], summary: 'Update pemateri (admin)', security: [{ bearerAuth: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-        requestBody: { content: { 'multipart/form-data': { schema: { type: 'object', properties: { nama: { type: 'string' }, bidang: { type: 'string' }, bio: { type: 'string' }, foto: { type: 'string', format: 'binary' } } } } } },
+        requestBody: {
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  nama: { type: 'string' },
+                  kitab: { type: 'string' },
+                  jenis: { type: 'string', enum: ['RUTIN', 'TEMATIK'] },
+                  hari: { type: 'string' },
+                  waktu: { type: 'string' },
+                  jam: { type: 'string' },
+                  keterangan: { type: 'string' },
+                  youtube: { type: 'string' },
+                  urutan: { type: 'integer' },
+                  isActive: { type: 'boolean' },
+                  foto: { type: 'string', format: 'binary' },
+                  kitabArabFile: { type: 'string', format: 'binary' },
+                  kitabTerjemahFile: { type: 'string', format: 'binary' },
+                },
+              },
+            },
+          },
+        },
         responses: { 200: { description: 'Pemateri diperbarui' } },
       },
       delete: {

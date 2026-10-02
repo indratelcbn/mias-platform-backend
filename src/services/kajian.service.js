@@ -1,6 +1,47 @@
 const prisma = require('../lib/prisma');
 const fs = require('fs');
 const path = require('path');
+const {
+  hasKitabTerjemahFileColumn,
+} = require('../lib/profil-pemateri-schema');
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const BULAN_ID = [
+  'januari', 'februari', 'maret', 'april', 'mei', 'juni',
+  'juli', 'agustus', 'september', 'oktober', 'november', 'desember',
+];
+
+function slugifyName(str) {
+  return str
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')   // strip diacritics
+    .replace(/[^a-z0-9\s-]/g, '')      // keep alphanumeric + space + hyphen
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
+function buildSlugBase(ustadz, tanggal) {
+  const d = new Date(tanggal);
+  const day  = d.getDate();
+  const month = BULAN_ID[d.getMonth()];
+  const year  = d.getFullYear();
+  return `${slugifyName(ustadz)}-${day}-${month}-${year}`;
+}
+
+async function generateUniqueSlug(ustadz, tanggal, excludeId = null) {
+  const base = buildSlugBase(ustadz, tanggal);
+  let slug = base;
+  let counter = 1;
+  while (true) {
+    const existing = await prisma.kajian.findUnique({ where: { slug }, select: { id: true } });
+    if (!existing || existing.id === excludeId) return slug;
+    counter++;
+    slug = `${base}-${counter}`;
+  }
+}
 
 function deleteFile(filePath) {
   if (!filePath) return;
@@ -9,24 +50,44 @@ function deleteFile(filePath) {
   try { if (fs.existsSync(fp)) fs.unlinkSync(fp); } catch {}
 }
 
-// Enrich kajian rows with pemateri kitab data where kajian has no kitab of its own
+// Enrich kajian rows with pemateri kitab data where kajian has no kitab of its own.
+// Also attaches kitabTerjemahFile (virtual) from pemateri for all rows.
 async function enrichKitabFromPemateri(rows) {
-  const needsKitab = rows.filter(k => !k.kitab && !k.kitabFile);
-  if (!needsKitab.length) return rows;
+  if (!rows.length) return rows;
 
-  const names = [...new Set(needsKitab.map(k => k.ustadz))];
+  const allNames = [...new Set(rows.map(k => k.ustadz).filter(Boolean))];
+  if (!allNames.length) return rows;
+
+  const hasKitabTerjemahFile = await hasKitabTerjemahFileColumn();
   const pemateriList = await prisma.profilPemateri.findMany({
-    where: { nama: { in: names }, isActive: true },
-    select: { nama: true, kitab: true, kitabFile: true },
+    where: { nama: { in: allNames }, isActive: true },
+    select: {
+      nama: true,
+      kitab: true,
+      kitabArabFile: true,
+      ...(hasKitabTerjemahFile && { kitabTerjemahFile: true }),
+    },
   });
   const pMap = new Map(pemateriList.map(p => [p.nama, p]));
 
   return rows.map(k => {
+    const p = pMap.get(k.ustadz);
+    if (!p) return k;
+
+    const enriched = { ...k };
+
+    // Fill kitab / kitabFile from pemateri when the kajian has none
     if (!k.kitab && !k.kitabFile) {
-      const p = pMap.get(k.ustadz);
-      if (p) return { ...k, kitab: p.kitab, kitabFile: p.kitabFile };
+      enriched.kitab = p.kitab;
+      enriched.kitabFile = p.kitabArabFile || null;
     }
-    return k;
+
+    // Always attach kitabTerjemahFile from pemateri (virtual field on response)
+    if (hasKitabTerjemahFile && p.kitabTerjemahFile && !enriched.kitabTerjemahFile) {
+      enriched.kitabTerjemahFile = p.kitabTerjemahFile;
+    }
+
+    return enriched;
   });
 }
 
@@ -84,19 +145,35 @@ const getAllAdmin = async ({ page = 1, limit = 10 } = {}) => {
   };
 };
 
-const getById = async (id) => {
-  const kajian = await prisma.kajian.findUnique({ where: { id } });
+const getById = async (idOrSlug) => {
+  let kajian;
+  if (UUID_RE.test(idOrSlug)) {
+    kajian = await prisma.kajian.findUnique({ where: { id: idOrSlug } });
+  } else {
+    kajian = await prisma.kajian.findUnique({ where: { slug: idOrSlug } });
+  }
+
   if (!kajian) {
     const err = new Error('Kajian tidak ditemukan.');
     err.statusCode = 404;
     throw err;
   }
+
+  // Lazy backfill: generate slug for legacy records that don't have one
+  if (!kajian.slug) {
+    try {
+      const slug = await generateUniqueSlug(kajian.ustadz, kajian.tanggal, kajian.id);
+      kajian = await prisma.kajian.update({ where: { id: kajian.id }, data: { slug } });
+    } catch {}
+  }
+
   const [enriched] = await enrichKitabFromPemateri([kajian]);
   return enriched;
 };
 
 const create = async (data) => {
-  return prisma.kajian.create({ data });
+  const slug = await generateUniqueSlug(data.ustadz, data.tanggal);
+  return prisma.kajian.create({ data: { ...data, slug } });
 };
 
 const update = async (id, data, newKitabFilename, kitabFileUrl, newMateriPdfFilename, materiFileUrl) => {
@@ -107,6 +184,17 @@ const update = async (id, data, newKitabFilename, kitabFileUrl, newMateriPdfFile
   }
   if (newMateriPdfFilename && curr.materiFile?.startsWith('/uploads/kajian_materi/')) {
     deleteFile(curr.materiFile);
+  }
+
+  // Regenerate slug when ustadz or tanggal changes
+  let newSlug;
+  const newUstadz = data.ustadz !== undefined ? data.ustadz : curr.ustadz;
+  const newTanggal = data.tanggal !== undefined ? data.tanggal : curr.tanggal;
+  const ustadzChanged = data.ustadz !== undefined && data.ustadz !== curr.ustadz;
+  const tanggalChanged = data.tanggal !== undefined &&
+    new Date(data.tanggal).toDateString() !== new Date(curr.tanggal).toDateString();
+  if (!curr.slug || ustadzChanged || tanggalChanged) {
+    newSlug = await generateUniqueSlug(newUstadz, newTanggal, id);
   }
 
   let kitabFileVal;
@@ -127,6 +215,7 @@ const update = async (id, data, newKitabFilename, kitabFileUrl, newMateriPdfFile
     where: { id },
     data: {
       ...data,
+      ...(newSlug && { slug: newSlug }),
       ...(kitabFileVal !== undefined && { kitabFile: kitabFileVal }),
       ...(materiFileVal !== undefined && { materiFile: materiFileVal }),
     },

@@ -32,6 +32,7 @@ router.get('/pemateri/admin',    authMiddleware, ctrl.getPemateriAdmin);
 router.post('/pemateri',         authMiddleware, uploadPemateriFiles, ctrl.createPemateri);
 router.put('/pemateri/:id',      authMiddleware, uploadPemateriFiles, ctrl.updatePemateri);
 router.delete('/pemateri/:id',   authMiddleware, ctrl.deletePemateri);
+router.delete('/pemateri/:id/kitab/:jenis', authMiddleware, ctrl.deletePemateriKitab);
 
 // ─── Hero Stats (public) ──────────────────────────────────────────────────────
 router.get('/hero-stats',        ctrl.getHeroStats);

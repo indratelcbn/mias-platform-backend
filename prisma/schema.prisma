@@ -156,6 +156,7 @@ model RolePermission {
 model Kajian {
   id          String   @id @default(uuid())
   judul       String
+  slug        String?  @unique @map("slug")
   ustadz      String
   tanggal     DateTime
   waktu       String
@@ -577,7 +578,8 @@ model ProfilPemateri {
   nama       String
   foto       String?
   kitab      String?
-  kitabFile  String?       @map("kitab_file") // PDF file path for download
+  kitabArabFile     String?       @map("kitab_file") // PDF kitab Arab path for download
+  kitabTerjemahFile String?       @map("kitab_terjemah_file") // PDF kitab terjemah path for download
   jenis      JenisPemateri @default(RUTIN)
   hari       String?       // e.g. "Senin, Rabu" comma-separated (only for RUTIN)
   waktu      String?       // e.g. "Pekan 1, Pekan 3" comma-separated (only for RUTIN)

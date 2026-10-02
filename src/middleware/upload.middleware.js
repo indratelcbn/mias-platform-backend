@@ -124,7 +124,7 @@ const uploadHeroBanner = createUpload('hero_banner', { width: 1920, quality: 85 
 // Popup flyer: promo/event material for the first website visit
 const uploadPopup = createUpload('popup', { width: 1200, quality: 85 });
 
-// ─── Pemateri: combined foto (image) + kitabFile (PDF) ───────────────────────
+// ─── Pemateri: foto (image) + kitab Arab/Terjemah (PDF) ─────────────────────
 const multerPemateriMemory = multer({
   storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
@@ -133,7 +133,7 @@ const multerPemateriMemory = multer({
       const okMime = /^image\/(jpeg|png|webp)$/.test(file.mimetype);
       return okExt && okMime ? cb(null, true) : cb(new Error('Foto harus berupa gambar (jpg, png, webp).'));
     }
-    if (file.fieldname === 'kitabFile') {
+    if (['kitabArabFile', 'kitabTerjemahFile', 'kitabFile'].includes(file.fieldname)) {
       const okPdf = file.mimetype === 'application/pdf' || /\.pdf$/i.test(file.originalname);
       return okPdf ? cb(null, true) : cb(new Error('File kitab harus berupa PDF.'));
     }
@@ -143,7 +143,12 @@ const multerPemateriMemory = multer({
 });
 
 const uploadPemateriFiles = (req, res, next) => {
-  multerPemateriMemory.fields([{ name: 'foto', maxCount: 1 }, { name: 'kitabFile', maxCount: 1 }])(req, res, async (err) => {
+  multerPemateriMemory.fields([
+    { name: 'foto', maxCount: 1 },
+    { name: 'kitabArabFile', maxCount: 1 },
+    { name: 'kitabTerjemahFile', maxCount: 1 },
+    { name: 'kitabFile', maxCount: 1 },
+  ])(req, res, async (err) => {
     if (err) return next(err);
     try {
       if (req.files?.foto?.[0]) {
@@ -155,13 +160,17 @@ const uploadPemateriFiles = (req, res, next) => {
         fotoFile.filename = filename;
         req.file = fotoFile; // backward compat with existing controller (req.file?.filename)
       }
-      if (req.files?.kitabFile?.[0]) {
-        const pdfFile = req.files.kitabFile[0];
-        const dir = path.join(__dirname, '../../uploads/profil_kitab');
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        const filename = `${uuidv4()}.pdf`;
-        fs.writeFileSync(path.join(dir, filename), pdfFile.buffer);
-        pdfFile.filename = filename;
+
+      const kitabPdfFields = ['kitabArabFile', 'kitabTerjemahFile', 'kitabFile'];
+      for (const field of kitabPdfFields) {
+        if (req.files?.[field]?.[0]) {
+          const pdfFile = req.files[field][0];
+          const dir = path.join(__dirname, '../../uploads/profil_kitab');
+          if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+          const filename = `${uuidv4()}.pdf`;
+          fs.writeFileSync(path.join(dir, filename), pdfFile.buffer);
+          pdfFile.filename = filename;
+        }
       }
       next();
     } catch (e) { next(e); }

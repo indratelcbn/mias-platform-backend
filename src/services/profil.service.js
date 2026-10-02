@@ -1,6 +1,11 @@
 const prisma = require('../lib/prisma');
 const fs = require('fs');
 const path = require('path');
+const {
+  hasKitabTerjemahFileColumn,
+  getPemateriSelect,
+  serializePemateri,
+} = require('../lib/profil-pemateri-schema');
 
 function deleteFile(filename, subfolder) {
   if (!filename) return;
@@ -115,49 +120,115 @@ async function updateStruktur(data, newFotoFilename) {
 
 // ─── Pemateri ─────────────────────────────────────────────────────────────────
 async function getAllPemateri({ onlyActive = false } = {}) {
-  return prisma.profilPemateri.findMany({
+  const select = await getPemateriSelect();
+  const rows = await prisma.profilPemateri.findMany({
+    select,
     where: onlyActive ? { isActive: true } : undefined,
     orderBy: [{ jenis: 'asc' }, { urutan: 'asc' }, { nama: 'asc' }],
   });
+  return rows.map(serializePemateri);
 }
 
 async function getPemateriById(id) {
-  const p = await prisma.profilPemateri.findUnique({ where: { id } });
+  const select = await getPemateriSelect();
+  const p = await prisma.profilPemateri.findUnique({ where: { id }, select });
   if (!p) { const e = new Error('Pemateri tidak ditemukan'); e.statusCode = 404; throw e; }
-  return p;
+  return serializePemateri(p);
 }
 
-async function createPemateri(data, fotoFilename, kitabFilename) {
-  return prisma.profilPemateri.create({
+async function createPemateri(data, fotoFilename, kitabArabFilename, kitabTerjemahFilename) {
+  const hasKitabTerjemahFile = await hasKitabTerjemahFileColumn();
+  if (kitabTerjemahFilename && !hasKitabTerjemahFile) {
+    deleteFile(`/uploads/profil_kitab/${kitabTerjemahFilename}`, '');
+    const e = new Error('Database belum siap untuk Kitab Terjemah. Jalankan migrasi backend terlebih dahulu.');
+    e.statusCode = 500;
+    throw e;
+  }
+
+  const row = await prisma.profilPemateri.create({
+    select: await getPemateriSelect(),
     data: {
       ...data,
-      ...(fotoFilename  && { foto:      `/uploads/profil/${fotoFilename}` }),
-      ...(kitabFilename && { kitabFile: `/uploads/profil_kitab/${kitabFilename}` }),
+      ...(fotoFilename && { foto: `/uploads/profil/${fotoFilename}` }),
+      ...(kitabArabFilename && { kitabArabFile: `/uploads/profil_kitab/${kitabArabFilename}` }),
+      ...(hasKitabTerjemahFile && kitabTerjemahFilename && { kitabTerjemahFile: `/uploads/profil_kitab/${kitabTerjemahFilename}` }),
     },
   });
+  return serializePemateri(row);
 }
 
-async function updatePemateri(id, data, newFotoFilename, newKitabFilename) {
+async function updatePemateri(id, data, newFotoFilename, newKitabArabFilename, newKitabTerjemahFilename) {
   const curr = await getPemateriById(id);
-  if (newFotoFilename  && curr.foto)      deleteFile(curr.foto, '');
-  if (newKitabFilename && curr.kitabFile) deleteFile(curr.kitabFile, '');
-  const fotoVal      = newFotoFilename  ? `/uploads/profil/${newFotoFilename}`              : undefined;
-  const kitabFileVal = newKitabFilename ? `/uploads/profil_kitab/${newKitabFilename}` : undefined;
-  return prisma.profilPemateri.update({
+  const hasKitabTerjemahFile = await hasKitabTerjemahFileColumn();
+  if (newKitabTerjemahFilename && !hasKitabTerjemahFile) {
+    deleteFile(`/uploads/profil_kitab/${newKitabTerjemahFilename}`, '');
+    const e = new Error('Database belum siap untuk Kitab Terjemah. Jalankan migrasi backend terlebih dahulu.');
+    e.statusCode = 500;
+    throw e;
+  }
+
+  if (newFotoFilename && curr.foto) deleteFile(curr.foto, '');
+  if (newKitabArabFilename && curr.kitabArabFile) deleteFile(curr.kitabArabFile, '');
+  if (newKitabTerjemahFilename && curr.kitabTerjemahFile) deleteFile(curr.kitabTerjemahFile, '');
+  const fotoVal = newFotoFilename ? `/uploads/profil/${newFotoFilename}` : undefined;
+  const kitabArabFileVal = newKitabArabFilename ? `/uploads/profil_kitab/${newKitabArabFilename}` : undefined;
+  const kitabTerjemahFileVal = newKitabTerjemahFilename ? `/uploads/profil_kitab/${newKitabTerjemahFilename}` : undefined;
+  const row = await prisma.profilPemateri.update({
+    select: await getPemateriSelect(),
     where: { id },
     data: {
       ...data,
-      ...(fotoVal      !== undefined && { foto:      fotoVal }),
-      ...(kitabFileVal !== undefined && { kitabFile: kitabFileVal }),
+      ...(fotoVal !== undefined && { foto: fotoVal }),
+      ...(kitabArabFileVal !== undefined && { kitabArabFile: kitabArabFileVal }),
+      ...(hasKitabTerjemahFile && kitabTerjemahFileVal !== undefined && { kitabTerjemahFile: kitabTerjemahFileVal }),
     },
   });
+  return serializePemateri(row);
 }
 
 async function deletePemateri(id) {
   const p = await getPemateriById(id);
-  if (p.foto)      deleteFile(p.foto, '');
-  if (p.kitabFile) deleteFile(p.kitabFile, '');
+  if (p.foto) deleteFile(p.foto, '');
+  if (p.kitabArabFile) deleteFile(p.kitabArabFile, '');
+  if (p.kitabTerjemahFile) deleteFile(p.kitabTerjemahFile, '');
   return prisma.profilPemateri.delete({ where: { id } });
+}
+
+async function deletePemateriKitab(id, jenis) {
+  const select = await getPemateriSelect();
+  const p = await prisma.profilPemateri.findUnique({ where: { id }, select });
+  if (!p) { const e = new Error('Pemateri tidak ditemukan'); e.statusCode = 404; throw e; }
+
+  const hasKitabTerjemahFile = await hasKitabTerjemahFileColumn();
+
+  if (jenis === 'arab') {
+    if (!p.kitabArabFile) { const e = new Error('File Kitab Arab tidak ada.'); e.statusCode = 404; throw e; }
+    deleteFile(p.kitabArabFile, '');
+    const row = await prisma.profilPemateri.update({
+      select,
+      where: { id },
+      data: { kitabArabFile: null },
+    });
+    return serializePemateri(row);
+  }
+
+  if (jenis === 'terjemah') {
+    if (!hasKitabTerjemahFile) {
+      const e = new Error('Fitur Kitab Terjemah belum tersedia. Jalankan migrasi database terlebih dahulu.');
+      e.statusCode = 500; throw e;
+    }
+    if (!p.kitabTerjemahFile) { const e = new Error('File Kitab Terjemah tidak ada.'); e.statusCode = 404; throw e; }
+    deleteFile(p.kitabTerjemahFile, '');
+    const row = await prisma.profilPemateri.update({
+      select,
+      where: { id },
+      data: { kitabTerjemahFile: null },
+    });
+    return serializePemateri(row);
+  }
+
+  const e = new Error('Jenis kitab tidak valid. Gunakan "arab" atau "terjemah".');
+  e.statusCode = 400; throw e;
 }
 
 // ─── Hero Stats (public) ──────────────────────────────────────────────────────
@@ -206,6 +277,6 @@ module.exports = {
   getAllFasilitas, getFasilitasById, createFasilitas, updateFasilitas, deleteFasilitas,
   addFasilitasFoto, deleteFasilitasFoto,
   getStruktur, updateStruktur,
-  getAllPemateri, getPemateriById, createPemateri, updatePemateri, deletePemateri,
+  getAllPemateri, getPemateriById, createPemateri, updatePemateri, deletePemateri, deletePemateriKitab,
   getHeroStats,
 };

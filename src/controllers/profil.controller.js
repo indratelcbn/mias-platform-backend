@@ -130,8 +130,9 @@ async function createPemateri(req, res, next) {
       urutan:     Number(req.body.urutan) || 0,
       isActive:   req.body.isActive !== undefined ? req.body.isActive === 'true' || req.body.isActive === true : true,
     };
-    const kitabFilename = req.files?.kitabFile?.[0]?.filename;
-    const row = await svc.createPemateri(data, req.file?.filename, kitabFilename);
+    const kitabArabFilename = req.files?.kitabArabFile?.[0]?.filename || req.files?.kitabFile?.[0]?.filename;
+    const kitabTerjemahFilename = req.files?.kitabTerjemahFile?.[0]?.filename;
+    const row = await svc.createPemateri(data, req.file?.filename, kitabArabFilename, kitabTerjemahFilename);
     res.status(201).json({ success: true, data: row });
   } catch (err) { next(err); }
 }
@@ -149,8 +150,9 @@ async function updatePemateri(req, res, next) {
     if (req.body.youtube    !== undefined) data.youtube    = req.body.youtube    || null;
     if (req.body.urutan     !== undefined) data.urutan     = Number(req.body.urutan) || 0;
     if (req.body.isActive   !== undefined) data.isActive   = req.body.isActive === 'true' || req.body.isActive === true;
-    const kitabFilename = req.files?.kitabFile?.[0]?.filename;
-    const row = await svc.updatePemateri(req.params.id, data, req.file?.filename, kitabFilename);
+    const kitabArabFilename = req.files?.kitabArabFile?.[0]?.filename || req.files?.kitabFile?.[0]?.filename;
+    const kitabTerjemahFilename = req.files?.kitabTerjemahFile?.[0]?.filename;
+    const row = await svc.updatePemateri(req.params.id, data, req.file?.filename, kitabArabFilename, kitabTerjemahFilename);
     res.json({ success: true, data: row });
   } catch (err) { next(err); }
 }
@@ -158,6 +160,14 @@ async function updatePemateri(req, res, next) {
 async function deletePemateri(req, res, next) {
   try { await svc.deletePemateri(req.params.id); res.json({ success: true }); }
   catch (err) { next(err); }
+}
+
+async function deletePemateriKitab(req, res, next) {
+  try {
+    const { id, jenis } = req.params;
+    const row = await svc.deletePemateriKitab(id, jenis);
+    res.json({ success: true, data: row });
+  } catch (err) { next(err); }
 }
 
 // ─── Hero Stats (public) ──────────────────────────────────────────────────────
@@ -172,6 +182,6 @@ module.exports = {
   getFasilitasPublic, getFasilitasAdmin, getFasilitasById, createFasilitas, updateFasilitas, deleteFasilitas,
   addFasilitasFoto, deleteFasilitasFoto,
   getStruktur, updateStruktur,
-  getPemateriPublic, getPemateriAdmin, createPemateri, updatePemateri, deletePemateri,
+  getPemateriPublic, getPemateriAdmin, createPemateri, updatePemateri, deletePemateri, deletePemateriKitab,
   getHeroStats,
 };
