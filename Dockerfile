@@ -25,8 +25,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
     ca-certificates \
     chromium \
-    fonts-noto \
-    fonts-noto-arabic \
+    fonts-noto-core \
+    fonts-hosny-amiri \
     fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
