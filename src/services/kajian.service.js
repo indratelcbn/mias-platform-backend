@@ -99,11 +99,14 @@ const create = async (data) => {
   return prisma.kajian.create({ data });
 };
 
-const update = async (id, data, newKitabFilename, kitabFileUrl) => {
+const update = async (id, data, newKitabFilename, kitabFileUrl, newMateriPdfFilename, materiFileUrl) => {
   const curr = await getById(id);
-  // Only delete the old file if it was a local upload being replaced
+  // Only delete old local uploads when being replaced
   if (newKitabFilename && curr.kitabFile?.startsWith('/uploads/kajian_kitab/')) {
     deleteFile(curr.kitabFile);
+  }
+  if (newMateriPdfFilename && curr.materiFile?.startsWith('/uploads/kajian_materi/')) {
+    deleteFile(curr.materiFile);
   }
 
   let kitabFileVal;
@@ -113,15 +116,27 @@ const update = async (id, data, newKitabFilename, kitabFileUrl) => {
     kitabFileVal = kitabFileUrl || null;
   }
 
+  let materiFileVal;
+  if (newMateriPdfFilename) {
+    materiFileVal = `/uploads/kajian_materi/${newMateriPdfFilename}`;
+  } else if (materiFileUrl !== undefined) {
+    materiFileVal = materiFileUrl || null;
+  }
+
   return prisma.kajian.update({
     where: { id },
-    data: { ...data, ...(kitabFileVal !== undefined && { kitabFile: kitabFileVal }) },
+    data: {
+      ...data,
+      ...(kitabFileVal !== undefined && { kitabFile: kitabFileVal }),
+      ...(materiFileVal !== undefined && { materiFile: materiFileVal }),
+    },
   });
 };
 
 const remove = async (id) => {
   const curr = await getById(id);
   if (curr.kitabFile) deleteFile(curr.kitabFile);
+  if (curr.materiFile) deleteFile(curr.materiFile);
   return prisma.kajian.delete({ where: { id } });
 };
 

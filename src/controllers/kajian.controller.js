@@ -36,6 +36,9 @@ const create = async (req, res, next) => {
     const kitabFile = req.files?.kitabFile?.[0]?.filename
       ? `/uploads/kajian_kitab/${req.files.kitabFile[0].filename}`
       : (req.body.kitabFileUrl || null);
+    const materiFile = req.files?.materiHtml?.[0]?.pdfFilename
+      ? `/uploads/kajian_materi/${req.files.materiHtml[0].pdfFilename}`
+      : (req.body.materiFileUrl || null);
 
     const data = {
       ...req.body,
@@ -43,10 +46,12 @@ const create = async (req, res, next) => {
       thumbnail,
       kitab: req.body.kitab || null,
       kitabFile,
+      materiFile,
       createdBy: req.user.id,
       isPublished: req.body.isPublished !== undefined ? req.body.isPublished === 'true' : true,
     };
     delete data.kitabFileUrl;
+    delete data.materiFileUrl;
 
     const kajian = await kajianService.create(data);
     res.status(201).json({ success: true, message: 'Kajian berhasil ditambahkan.', data: kajian });
@@ -61,9 +66,11 @@ const update = async (req, res, next) => {
       ? `/uploads/thumbnails/${req.file.filename}`
       : undefined;
     const newKitabFilename = req.files?.kitabFile?.[0]?.filename;
+    const newMateriPdfFilename = req.files?.materiHtml?.[0]?.pdfFilename;
 
     const data = { ...req.body };
     delete data.kitabFileUrl;
+    delete data.materiFileUrl;
     if (req.body.tanggal) data.tanggal = new Date(req.body.tanggal);
     if (thumbnail) data.thumbnail = thumbnail;
     if (req.body.kitab !== undefined) data.kitab = req.body.kitab || null;
@@ -71,7 +78,11 @@ const update = async (req, res, next) => {
       data.isPublished = req.body.isPublished === 'true' || req.body.isPublished === true;
     }
 
-    const kajian = await kajianService.update(req.params.id, data, newKitabFilename, req.body.kitabFileUrl);
+    const kajian = await kajianService.update(
+      req.params.id, data,
+      newKitabFilename, req.body.kitabFileUrl,
+      newMateriPdfFilename, req.body.materiFileUrl,
+    );
     res.json({ success: true, message: 'Kajian berhasil diperbarui.', data: kajian });
   } catch (err) {
     next(err);

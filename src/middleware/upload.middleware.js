@@ -168,7 +168,7 @@ const uploadPemateriFiles = (req, res, next) => {
   });
 };
 
-// ─── Kajian: combined thumbnail (image) + kitabFile (PDF) ────────────────────
+// ─── Kajian: thumbnail (image) + kitabFile (PDF) + materiHtml (HTML→PDF) ─────
 const multerKajianMemory = multer({
   storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
@@ -181,13 +181,22 @@ const multerKajianMemory = multer({
       const okPdf = file.mimetype === 'application/pdf' || /\.pdf$/i.test(file.originalname);
       return okPdf ? cb(null, true) : cb(new Error('File kitab harus berupa PDF.'));
     }
+    if (file.fieldname === 'materiHtml') {
+      const okHtml = file.mimetype === 'text/html' || /\.html?$/i.test(file.originalname);
+      return okHtml ? cb(null, true) : cb(new Error('File materi harus berupa HTML (.html).'));
+    }
     cb(null, false);
   },
   limits: { fileSize: 20 * 1024 * 1024 },
 });
 
 const uploadKajianFiles = (req, res, next) => {
-  multerKajianMemory.fields([{ name: 'thumbnail', maxCount: 1 }, { name: 'kitabFile', maxCount: 1 }])(req, res, async (err) => {
+  const fields = [
+    { name: 'thumbnail', maxCount: 1 },
+    { name: 'kitabFile', maxCount: 1 },
+    { name: 'materiHtml', maxCount: 1 },
+  ];
+  multerKajianMemory.fields(fields)(req, res, async (err) => {
     if (err) return next(err);
     try {
       if (req.files?.thumbnail?.[0]) {
@@ -206,6 +215,12 @@ const uploadKajianFiles = (req, res, next) => {
         const filename = `${uuidv4()}.pdf`;
         fs.writeFileSync(path.join(dir, filename), pdfFile.buffer);
         pdfFile.filename = filename;
+      }
+      if (req.files?.materiHtml?.[0]) {
+        const { saveMateriPdf } = require('../lib/html-to-pdf');
+        const htmlFile = req.files.materiHtml[0];
+        // Convert HTML → PDF via Puppeteer; filename stored for controller use
+        htmlFile.pdfFilename = await saveMateriPdf(htmlFile.buffer);
       }
       next();
     } catch (e) { next(e); }

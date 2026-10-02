@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Skip bundled Chromium download — system chromium used in production
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
 
@@ -21,9 +24,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dumb-init \
     openssl \
     ca-certificates \
+    chromium \
+    fonts-noto \
+    fonts-noto-arabic \
+    fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
+# Use system Chromium instead of puppeteer's bundled binary
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 WORKDIR /app
 
 COPY --from=builder /app/node_modules ./node_modules
