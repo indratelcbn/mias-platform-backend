@@ -36,8 +36,8 @@ const create = async (req, res, next) => {
     const kitabFile = req.files?.kitabFile?.[0]?.filename
       ? `/uploads/kajian_kitab/${req.files.kitabFile[0].filename}`
       : (req.body.kitabFileUrl || null);
-    const materiFile = req.files?.materiHtml?.[0]?.pdfFilename
-      ? `/uploads/kajian_materi/${req.files.materiHtml[0].pdfFilename}`
+    const materiFile = req.files?.materiPdf?.[0]?.pdfFilename
+      ? `/uploads/kajian_materi/${req.files.materiPdf[0].pdfFilename}`
       : (req.body.materiFileUrl || null);
 
     const data = {
@@ -66,7 +66,7 @@ const update = async (req, res, next) => {
       ? `/uploads/thumbnails/${req.file.filename}`
       : undefined;
     const newKitabFilename = req.files?.kitabFile?.[0]?.filename;
-    const newMateriPdfFilename = req.files?.materiHtml?.[0]?.pdfFilename;
+    const newMateriPdfFilename = req.files?.materiPdf?.[0]?.pdfFilename;
 
     const data = { ...req.body };
     delete data.kitabFileUrl;

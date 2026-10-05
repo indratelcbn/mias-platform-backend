@@ -177,7 +177,7 @@ const uploadPemateriFiles = (req, res, next) => {
   });
 };
 
-// ─── Kajian: thumbnail (image) + kitabFile (PDF) + materiHtml (HTML→PDF) ─────
+// ─── Kajian: thumbnail (image) + kitabFile (PDF) + materiPdf (PDF, compressed) ─
 const multerKajianMemory = multer({
   storage: multer.memoryStorage(),
   fileFilter: (req, file, cb) => {
@@ -190,9 +190,9 @@ const multerKajianMemory = multer({
       const okPdf = file.mimetype === 'application/pdf' || /\.pdf$/i.test(file.originalname);
       return okPdf ? cb(null, true) : cb(new Error('File kitab harus berupa PDF.'));
     }
-    if (file.fieldname === 'materiHtml') {
-      const okHtml = file.mimetype === 'text/html' || /\.html?$/i.test(file.originalname);
-      return okHtml ? cb(null, true) : cb(new Error('File materi harus berupa HTML (.html).'));
+    if (file.fieldname === 'materiPdf') {
+      const okPdf = file.mimetype === 'application/pdf' || /\.pdf$/i.test(file.originalname);
+      return okPdf ? cb(null, true) : cb(new Error('File materi harus berupa PDF (.pdf).'));
     }
     cb(null, false);
   },
@@ -203,7 +203,7 @@ const uploadKajianFiles = (req, res, next) => {
   const fields = [
     { name: 'thumbnail', maxCount: 1 },
     { name: 'kitabFile', maxCount: 1 },
-    { name: 'materiHtml', maxCount: 1 },
+    { name: 'materiPdf', maxCount: 1 },
   ];
   multerKajianMemory.fields(fields)(req, res, async (err) => {
     if (err) return next(err);
@@ -225,11 +225,15 @@ const uploadKajianFiles = (req, res, next) => {
         fs.writeFileSync(path.join(dir, filename), pdfFile.buffer);
         pdfFile.filename = filename;
       }
-      if (req.files?.materiHtml?.[0]) {
-        const { saveMateriPdf } = require('../lib/html-to-pdf');
-        const htmlFile = req.files.materiHtml[0];
-        // Convert HTML → PDF via Puppeteer; filename stored for controller use
-        htmlFile.pdfFilename = await saveMateriPdf(htmlFile.buffer);
+      if (req.files?.materiPdf?.[0]) {
+        const { compressPdfBuffer } = require('../lib/compress-pdf');
+        const pdfFile = req.files.materiPdf[0];
+        const dir = path.join(__dirname, '../../uploads/kajian_materi');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const filename = `${uuidv4()}.pdf`;
+        const compressed = await compressPdfBuffer(pdfFile.buffer);
+        fs.writeFileSync(path.join(dir, filename), compressed);
+        pdfFile.pdfFilename = filename;
       }
       next();
     } catch (e) { next(e); }
