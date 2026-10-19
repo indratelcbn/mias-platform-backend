@@ -484,6 +484,102 @@ model PendidikanFoto {
   @@map("pendidikan_foto")
 }
 
+// ─── Ujian Online ─────────────────────────────────────────────────────────────
+enum StatusUjian {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+}
+
+enum StatusPeserta {
+  AKTIF
+  SELESAI
+  EXPIRED
+}
+
+model Ujian {
+  id           String      @id @default(uuid())
+  judul        String
+  deskripsi    String?
+  kodeUjian    String      @unique @map("kode_ujian")
+  tanggalMulai DateTime    @map("tanggal_mulai")
+  tanggalSelesai DateTime  @map("tanggal_selesai")
+  durasi       Int         // durasi dalam menit
+  passingGrade Int         @default(70) @map("passing_grade") // 0-100 persen
+  maxPercobaan Int         @default(1) @map("max_percobaan")
+  status       StatusUjian @default(DRAFT)
+  petunjuk     String?
+  tampilNilai  Boolean     @default(false) @map("tampil_nilai")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  soal    SoalUjian[]
+  peserta PesertaUjian[]
+
+  @@index([status])
+  @@index([kodeUjian])
+  @@map("ujian")
+}
+
+model SoalUjian {
+  id           String   @id @default(uuid())
+  ujianId      String   @map("ujian_id")
+  teks         String
+  pilihanA     String   @map("pilihan_a")
+  pilihanB     String   @map("pilihan_b")
+  pilihanC     String   @map("pilihan_c")
+  pilihanD     String   @map("pilihan_d")
+  kunciJawaban String   @map("kunci_jawaban") // A | B | C | D
+  bobot        Int      @default(1)
+  urutan       Int      @default(0)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  ujian   Ujian          @relation(fields: [ujianId], references: [id], onDelete: Cascade)
+  jawaban JawabanUjian[]
+
+  @@index([ujianId])
+  @@map("soal_ujian")
+}
+
+model PesertaUjian {
+  id           String        @id @default(uuid())
+  ujianId      String        @map("ujian_id")
+  namaLengkap  String        @map("nama_lengkap")
+  identitas    String
+  percobaan    Int           @default(1)
+  startedAt    DateTime      @default(now()) @map("started_at")
+  finishedAt   DateTime?     @map("finished_at")
+  score        Float?
+  isPassed     Boolean?      @map("is_passed")
+  status       StatusPeserta @default(AKTIF)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  ujian   Ujian          @relation(fields: [ujianId], references: [id], onDelete: Cascade)
+  jawaban JawabanUjian[]
+
+  @@index([ujianId])
+  @@index([status])
+  @@map("peserta_ujian")
+}
+
+model JawabanUjian {
+  id        String   @id @default(uuid())
+  pesertaId String   @map("peserta_id")
+  soalId    String   @map("soal_id")
+  jawaban   String   // A | B | C | D
+  savedAt   DateTime @default(now()) @map("saved_at")
+
+  peserta PesertaUjian @relation(fields: [pesertaId], references: [id], onDelete: Cascade)
+  soal    SoalUjian    @relation(fields: [soalId], references: [id], onDelete: Cascade)
+
+  @@unique([pesertaId, soalId])
+  @@index([pesertaId])
+  @@map("jawaban_ujian")
+}
+
 // ─── Usaha: Umroh ─────────────────────────────────────────────────────────────
 model UmrohProgram {
   id          String   @id @default(uuid())

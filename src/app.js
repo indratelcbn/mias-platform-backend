@@ -28,6 +28,7 @@ const financeRoutes = require('./routes/finance.routes');
 const divisiRoutes = require('./routes/divisi.routes');
 const analyticsRoutes = require('./routes/analytics');
 const submissionRoutes = require('./routes/finance-submission.routes');
+const ujianRoutes = require('./routes/ujian.routes');
 const { visitorTrackingMiddleware } = require('./middleware/analytics.middleware');
 const errorHandler = require('./middleware/error.middleware');
 
@@ -103,6 +104,7 @@ app.use('/api/finance', financeRoutes);
 app.use('/api/divisi', divisiRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/finance/submissions', submissionRoutes);
+app.use('/api/ujian', ujianRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
