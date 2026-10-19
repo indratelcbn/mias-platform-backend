@@ -128,6 +128,9 @@ router.get('/dashboard', authMiddleware, adminOnly, financeController.getDashboa
 router.get('/fund-tracking', authMiddleware, adminOnly, financeController.getFundTracking);
 router.get('/charts/trends', authMiddleware, adminOnly, financeController.getTrendsData);
 router.get('/reports/monthly', authMiddleware, adminOnly, financeController.getMonthlyReport);
+router.get('/reports/program', authMiddleware, adminOnly, financeController.getProgramReport);
+router.get('/reports/program/excel', authMiddleware, adminOnly, financeController.exportProgramReportExcel);
+router.get('/reports/program/pdf', authMiddleware, adminOnly, financeController.exportProgramReportPDF);
 router.get('/reports/monthly/excel', authMiddleware, adminOnly, financeController.exportMonthlyReportExcel);
 router.get('/reports/monthly/pdf', authMiddleware, adminOnly, financeController.exportMonthlyReportPDF);
 

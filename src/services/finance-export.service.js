@@ -638,9 +638,199 @@ const drawTable = (doc, { headers, widths, align, rows, totalRow }) => {
   if (totalRow) drawRow(totalRow, false, true);
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── PROGRAM REPORT (Laporan Per Program) ──────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const programHeaderLines = (report) => {
+  const period = periodLabel(report.year, report.month);
+  const progLabel = report.programName || `Program [${report.programCode}]`;
+  return { period, progLabel };
+};
+
+const generateProgramReportExcel = async (report) => {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'MIAS - Masjid Imam Asy Syafi\'i';
+  workbook.created = new Date();
+
+  const summary = report.summary || {};
+  const { period, progLabel } = programHeaderLines(report);
+
+  const ws = workbook.addWorksheet('Laporan Program');
+  ws.columns = [
+    { key: 'date', width: 16 },
+    { key: 'desc', width: 44 },
+    { key: 'account', width: 22 },
+    { key: 'in', width: 18 },
+    { key: 'out', width: 18 },
+    { key: 'balance', width: 20 },
+  ];
+
+  // ─── Judul ───
+  ws.mergeCells('A1:F1');
+  ws.getCell('A1').value = 'LAPORAN PER PROGRAM';
+  ws.getCell('A1').font = { size: 16, bold: true };
+  ws.getCell('A1').alignment = { horizontal: 'center' };
+
+  ws.mergeCells('A2:F2');
+  ws.getCell('A2').value = "Masjid Imam Asy Syafi'i - Depok";
+  ws.getCell('A2').font = { size: 11, italic: true };
+  ws.getCell('A2').alignment = { horizontal: 'center' };
+
+  ws.mergeCells('A3:F3');
+  ws.getCell('A3').value = `${progLabel}  (Kode: ${report.programCode})`;
+  ws.getCell('A3').font = { size: 12, bold: true };
+  ws.getCell('A3').alignment = { horizontal: 'center' };
+
+  ws.mergeCells('A4:F4');
+  ws.getCell('A4').value = `Periode: ${period}`;
+  ws.getCell('A4').alignment = { horizontal: 'center' };
+
+  ws.addRow([]);
+
+  // ─── Ringkasan ───
+  const sumRows = [
+    ['Saldo Awal', Number(summary.openingBalance) || 0],
+    ['Total Transaksi Masuk', Number(summary.totalIn) || 0],
+    ['Total Transaksi Keluar', Number(summary.totalOut) || 0],
+    ['Total Saldo (Akhir)', Number(summary.closingBalance) || 0],
+  ];
+  sumRows.forEach((row) => {
+    const r = ws.addRow([row[0], row[1]]);
+    r.getCell(1).font = { bold: true };
+    r.getCell(2).numFmt = '"Rp" #,##0';
+  });
+
+  ws.addRow([]);
+
+  // ─── Header tabel ───
+  const headerRow = ws.addRow(['Tanggal', 'Deskripsi', 'Akun', 'Masuk', 'Keluar', 'Saldo']);
+  styleHeaderRow(headerRow);
+
+  // Baris Saldo Awal
+  const openingRow = ws.addRow(['', 'Saldo Awal', '', '', '', Number(summary.openingBalance) || 0]);
+  openingRow.getCell(2).font = { italic: true, bold: true };
+  openingRow.getCell(6).numFmt = '"Rp" #,##0';
+
+  // ─── Baris transaksi ───
+  (report.transactions || []).forEach((t) => {
+    const r = ws.addRow([
+      formatDateShort(t.transactionDate),
+      t.description || '-',
+      t.accountName || '-',
+      t.type === 'IN' ? Number(t.amount) || 0 : null,
+      t.type === 'OUT' ? Number(t.amount) || 0 : null,
+      Number(t.runningBalance) || 0,
+    ]);
+    r.getCell(4).numFmt = '"Rp" #,##0';
+    r.getCell(5).numFmt = '"Rp" #,##0';
+    r.getCell(6).numFmt = '"Rp" #,##0';
+  });
+
+  // ─── Baris TOTAL ───
+  const totalRow = ws.addRow([
+    'TOTAL', '', '',
+    Number(summary.totalIn) || 0,
+    Number(summary.totalOut) || 0,
+    Number(summary.closingBalance) || 0,
+  ]);
+  totalRow.eachCell((cell) => { cell.font = { bold: true }; });
+  totalRow.getCell(4).numFmt = '"Rp" #,##0';
+  totalRow.getCell(5).numFmt = '"Rp" #,##0';
+  totalRow.getCell(6).numFmt = '"Rp" #,##0';
+
+  return workbook.xlsx.writeBuffer();
+};
+
+const generateProgramReportPDF = (report) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40 });
+      const chunks = [];
+      doc.on('data', (c) => chunks.push(c));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      const summary = report.summary || {};
+      const { period, progLabel } = programHeaderLines(report);
+
+      // ─── Header ───
+      doc.fontSize(16).font('Helvetica-Bold').text('LAPORAN PER PROGRAM', { align: 'center' });
+      doc.fontSize(11).font('Helvetica').text("Masjid Imam Asy Syafi'i - Depok", { align: 'center' });
+      doc.fontSize(11).font('Helvetica-Bold').text(`${progLabel}  (Kode: ${report.programCode})`, { align: 'center' });
+      doc.fontSize(10).font('Helvetica').text(`Periode: ${period}`, { align: 'center' });
+      doc.fontSize(9).fillColor('#666').text(`Dicetak: ${formatDateShort(new Date())}`, { align: 'center' });
+      doc.fillColor('#000');
+      doc.moveTo(40, doc.y + 5).lineTo(800, doc.y + 5).strokeColor('#999').stroke();
+      doc.moveDown(1);
+
+      // ─── Ringkasan ───
+      doc.fontSize(12).font('Helvetica-Bold').text('RINGKASAN');
+      doc.moveDown(0.3);
+      doc.fontSize(10).font('Helvetica');
+      const items = [
+        ['Saldo Awal', formatCurrency(summary.openingBalance)],
+        ['Total Transaksi Masuk', `${formatCurrency(summary.totalIn)} (${summary.countIn || 0} transaksi)`],
+        ['Total Transaksi Keluar', `${formatCurrency(summary.totalOut)} (${summary.countOut || 0} transaksi)`],
+        ['Total Saldo (Akhir)', formatCurrency(summary.closingBalance)],
+      ];
+      items.forEach(([label, value]) => {
+        doc.font('Helvetica').text(label, 50, doc.y, { continued: true, width: 220 });
+        doc.font('Helvetica-Bold').text(`: ${value}`);
+      });
+      doc.moveDown(0.8);
+
+      // ─── Tabel transaksi ───
+      doc.fontSize(12).font('Helvetica-Bold').text('RINCIAN TRANSAKSI');
+      doc.moveDown(0.3);
+
+      const rows = [
+        ['', 'Saldo Awal', '', '', '', formatCurrency(summary.openingBalance)],
+        ...(report.transactions || []).map((t) => [
+          formatDateShort(t.transactionDate),
+          t.description || '-',
+          t.accountName || '-',
+          t.type === 'IN' ? formatCurrency(t.amount) : '-',
+          t.type === 'OUT' ? formatCurrency(t.amount) : '-',
+          formatCurrency(t.runningBalance),
+        ]),
+      ];
+
+      drawTable(doc, {
+        headers: ['Tanggal', 'Deskripsi', 'Akun', 'Masuk', 'Keluar', 'Saldo'],
+        widths: [70, 280, 140, 90, 90, 110],
+        align: ['left', 'left', 'left', 'right', 'right', 'right'],
+        rows,
+        totalRow: ['TOTAL', '', '', formatCurrency(summary.totalIn), formatCurrency(summary.totalOut), formatCurrency(summary.closingBalance)],
+      });
+
+      // Footer
+      const range = doc.bufferedPageRange();
+      for (let i = 0; i < range.count; i += 1) {
+        doc.switchToPage(range.start + i);
+        const bottom = doc.page.height - 30;
+        doc.fontSize(8).fillColor('#888')
+          .text(
+            `Laporan dibuat oleh sistem MIAS  |  Halaman ${i + 1} dari ${range.count}`,
+            40,
+            bottom,
+            { align: 'center', width: doc.page.width - 80 }
+          );
+        doc.fillColor('#000');
+      }
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
 module.exports = {
   generateMonthlyReportExcel,
   generateMonthlyReportPDF,
+  generateProgramReportExcel,
+  generateProgramReportPDF,
   generateTransactionsExcel,
   generateTransactionsPDF,
 };

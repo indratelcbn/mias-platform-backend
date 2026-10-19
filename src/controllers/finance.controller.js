@@ -198,6 +198,15 @@ const getMonthlyReport = async (req, res, next) => {
   }
 };
 
+const getProgramReport = async (req, res, next) => {
+  try {
+    const data = await financeService.getProgramReport(req.query);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const exportMonthlyReportExcel = async (req, res, next) => {
   try {
     const report = await financeService.getMonthlyReport(req.query);
@@ -228,6 +237,33 @@ const getTrendsData = async (req, res, next) => {
   try {
     const data = await financeService.getTrendsData(req.query);
     res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const programReportFilename = (report, ext) =>
+  `Laporan-Program-${report.programCode || 'xxx'}-${report.year}-${String(report.month).padStart(2, '0')}.${ext}`;
+
+const exportProgramReportExcel = async (req, res, next) => {
+  try {
+    const report = await financeService.getProgramReport(req.query);
+    const buffer = await financeExportService.generateProgramReportExcel(report);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${programReportFilename(report, 'xlsx')}"`);
+    res.send(Buffer.from(buffer));
+  } catch (err) {
+    next(err);
+  }
+};
+
+const exportProgramReportPDF = async (req, res, next) => {
+  try {
+    const report = await financeService.getProgramReport(req.query);
+    const buffer = await financeExportService.generateProgramReportPDF(report);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${programReportFilename(report, 'pdf')}"`);
+    res.send(buffer);
   } catch (err) {
     next(err);
   }
@@ -475,6 +511,9 @@ module.exports = {
   getDashboardSummary,
   getFundTracking,
   getMonthlyReport,
+  getProgramReport,
+  exportProgramReportExcel,
+  exportProgramReportPDF,
   exportMonthlyReportExcel,
   exportMonthlyReportPDF,
   getTrendsData,

@@ -940,6 +940,110 @@ const getMonthlyReport = async ({ year, month, accountId } = {}) => {
 };
 
 /**
+ * Laporan Per Program — detail transaksi masuk & keluar untuk satu program
+ * dalam periode bulanan, lengkap dengan saldo awal, saldo berjalan, dan saldo akhir.
+ *
+ * @param {Object} opts
+ * @param {number} opts.year  Tahun periode
+ * @param {number} opts.month Bulan periode (1-12)
+ * @param {string} opts.programCode  Kode program (mis. "000")
+ */
+const getProgramReport = async ({ year, month, programCode } = {}) => {
+  const financeProgramService = require('./finance-program.service');
+
+  const currentYear = Number(year) || new Date().getFullYear();
+  const currentMonth = Number(month) || new Date().getMonth() + 1;
+
+  if (programCode === undefined || programCode === null || String(programCode).trim() === '') {
+    const err = new Error('Kode program wajib diisi.');
+    err.status = 400;
+    throw err;
+  }
+
+  // Normalisasi kode ke angka (mendukung "000", "0", 42, dll)
+  const codeDigits = String(programCode).replace(/\D/g, '');
+  const codeNum = codeDigits === '' ? NaN : parseInt(codeDigits, 10);
+  const codeStr = Number.isNaN(codeNum) ? String(programCode).trim() : String(codeNum).padStart(3, '0');
+
+  // Cari program berdasarkan kode unik
+  const program = Number.isNaN(codeNum)
+    ? null
+    : await financeProgramService.findProgramByUniqueCode(codeNum);
+
+  const startDate = new Date(currentYear, currentMonth - 1, 1);
+  const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59);
+
+  // Filter transaksi berdasarkan programId (jika program ditemukan) atau kode di programName
+  const matchFilter = program
+    ? { programId: program.id }
+    : { programName: { contains: `[${codeStr}]` } };
+
+  // Saldo awal: akumulasi semua transaksi program sebelum periode
+  const prevTx = await prisma.financeTransaction.findMany({
+    where: { transactionDate: { lt: startDate }, ...matchFilter },
+    select: { type: true, amount: true },
+  });
+  let openingBalance = 0;
+  for (const t of prevTx) {
+    if (t.type === 'IN') openingBalance += Number(t.amount);
+    else openingBalance -= Number(t.amount);
+  }
+
+  // Transaksi dalam periode
+  const periodTx = await prisma.financeTransaction.findMany({
+    where: { transactionDate: { gte: startDate, lte: endDate }, ...matchFilter },
+    include: { account: { select: { id: true, name: true, type: true } } },
+    orderBy: { transactionDate: 'asc' },
+  });
+
+  let totalIn = 0;
+  let totalOut = 0;
+  let countIn = 0;
+  let countOut = 0;
+  let running = openingBalance;
+
+  const transactions = periodTx.map((t) => {
+    const amt = Number(t.amount);
+    if (t.type === 'IN') { totalIn += amt; countIn += 1; running += amt; }
+    else { totalOut += amt; countOut += 1; running -= amt; }
+    return {
+      id: t.id,
+      transactionDate: t.transactionDate,
+      description: t.description,
+      category: t.category,
+      type: t.type,
+      amount: amt,
+      accountName: t.account?.name || '-',
+      accountType: t.account?.type || null,
+      runningBalance: running,
+    };
+  });
+
+  const closingBalance = openingBalance + totalIn - totalOut;
+
+  return {
+    year: currentYear,
+    month: currentMonth,
+    programCode: program?.code || codeStr,
+    programName: program?.name || (transactions.length ? null : `Program [${codeStr}]`),
+    programType: program?.type || null,
+    divisiNama: program?.divisiNama || null,
+    found: !!program,
+    summary: {
+      openingBalance,
+      totalIn,
+      totalOut,
+      closingBalance,
+      netCashflow: totalIn - totalOut,
+      countIn,
+      countOut,
+      totalTransactions: transactions.length,
+    },
+    transactions,
+  };
+};
+
+/**
  * Get trends data for charts (by divisi and period)
  */
 const getTrendsData = async ({ divisiId, period = 'MONTHLY', year, startMonth, endMonth, semester, startYear, endYear } = {}) => {
@@ -1113,5 +1217,6 @@ module.exports = {
   getDashboardSummary,
   getFundTracking,
   getMonthlyReport,
+  getProgramReport,
   getTrendsData,
 };
